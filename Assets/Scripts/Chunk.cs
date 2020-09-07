@@ -147,6 +147,9 @@ public class Chunk
 
         NativeArray<int> returnCounts = new NativeArray<int>(2, Allocator.TempJob);
 
+
+
+
         NativeList<ChunkMeshVertexData> meshVertices = new NativeList<ChunkMeshVertexData>(0, Allocator.TempJob);
         NativeList<int> triVerts = new NativeList<int>(0, Allocator.TempJob);
 

@@ -1,21 +1,22 @@
 ﻿using System;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
+using Unity.Profiling;
 using UnityEngine;
 
 /// <summary>
 /// Defines the <see cref="MeshCreateJob" />.
 /// </summary>
+
 public struct MeshCreateJob : IJob
 {
     public NativeArray<BlockData> blockData;
 
     public NativeList<ChunkMeshVertexData> verts;
-
-    public int vertCount;
-
     public NativeList<int> tris;
 
+    public int vertCount;
     public int triCount;
 
     public int sizex;
@@ -29,6 +30,9 @@ public struct MeshCreateJob : IJob
     public int y;
 
     public int z;
+
+    public int mode;
+
 
     public NativeArray<int> counts;
 
@@ -87,48 +91,173 @@ public struct MeshCreateJob : IJob
     internal static int[] materialIndex = new int[]
         { 12, 13, 14,15,8, 9 };
 
+
+
+    
+
+
+
     /// <summary>
     /// The Execute.
     /// </summary>
     public void Execute()
     {
 
+        //ProfilerMarker markerFull = new ProfilerMarker("Full");
+
+
+        //ProfilerMarker markerInit = new ProfilerMarker("Init");
+
+        //ProfilerMarker markerPreMain = new ProfilerMarker("PreMain");
+        //ProfilerMarker markerInMain = new ProfilerMarker("mloop");
+
+
+        //ProfilerMarker marker1 = new ProfilerMarker("1");
+        //ProfilerMarker marker2 = new ProfilerMarker("2");
+        //ProfilerMarker marker3 = new ProfilerMarker("3");
+        //ProfilerMarker marker4 = new ProfilerMarker("4");
+        //ProfilerMarker marker4n = new ProfilerMarker("4.n");
+        //ProfilerMarker marker41 = new ProfilerMarker("4.1");
+
+
+        //markerFull.Begin();
+        //markerInit.Begin();
+
+        verts.Capacity = 60000;
+        tris.Capacity = 60000;
+
         int vertIndex = 0;
         int triIndex = 0;
+
+
+        // Convert to managed array for faster read access
+        BlockData[] newBlockData = blockData.ToArray();
+
+
+
+        //markerInit.End();
+
+
+        //int face = 0;
+
+
+        //markerPreMain.Begin();
 
         x = -1;
         for (int i = 0; i < blockData.Length; i++)
         {
 
-            x = x + 1;
-            // convert the straight array to xyz coords  // maybe not necessary
-            if (x == sizex)
+            //markerInMain.Begin();
+
+            //marker1.Begin();
+            if (true || mode == 0)
             {
-                x = 0;
-                y = y + 1;
-
-                if (y == sizey)
+                
+                x = x + 1;
+                // convert the straight array to xyz coords  // maybe not necessary
+                if (x == sizex)
                 {
-                    y = 0;
-                    z = z + 1;
+                    x = 0;
+                    y = y + 1;
+
+                    if (y == sizey)
+                    {
+                        y = 0;
+                        z = z + 1;
+                    }
                 }
+                
+
             }
+            //marker1.End();
 
-            BlockData block = blockData[i];
 
+            //marker2.Begin();
+            BlockData block = newBlockData[i];
+            
 
             if (!block.isVisible)
             {
+                //marker2.End();
+                //markerInMain.End();
                 continue;
             }
+            //marker2.End();
+
+            //marker3.Begin();
 
             for (int face = 0; face < 6; face++)
             {
 
+                //marker4.Begin();
 
-                if (!isNeighborSolid(blockData, i, face))
+                //marker4n.Begin();
+
+
+                // 
+
+                Boolean neighborSolid = false;
+
+                int neighborIndex = -1;
+
+
+                switch (face)
+                {
+                    case 0:
+                        if (y < sizey - 1)
+                        {
+                            neighborIndex = i + sizex;
+                        }
+                        break;
+                    case 1:
+                        if (y > 0)
+                        {
+                            neighborIndex = i - sizex;
+                        }
+                        break;
+                    case 2:
+                        if (z < sizez - 1)
+                        {
+                            neighborIndex = i + sizex * sizey;
+                        }
+                        break;
+                    case 3:
+                        if (z > 0)
+                        {
+                            neighborIndex = i - sizex * sizey;
+                        }
+                        break;
+                    case 4:
+                        if (x < sizex - 1)
+                        {
+                            neighborIndex = i + 1;
+                        }
+                        break;
+                    case 5:
+                        if (x > 0)
+                        {
+                            neighborIndex = i - 1;
+                        }
+                        break;
+                }
+
+                if (neighborIndex >= 0)
+                {
+                    neighborSolid = newBlockData[neighborIndex].isSolid;
+                }
+
+
+                //marker4n.End();
+
+                //marker41.Begin();
+
+                if (!neighborSolid)
                 {
                     // add the face to the mesh
+
+
+                    
+
 
                     ChunkMeshVertexData vertsout0 = new ChunkMeshVertexData();
                     ChunkMeshVertexData vertsout1 = new ChunkMeshVertexData();
@@ -168,12 +297,29 @@ public struct MeshCreateJob : IJob
                     vertIndex += 4;
                     triIndex += 6;
 
+                    
+
+                    
+
                 }
+                //marker41.End();
+
+                //marker4.End();
             }
+            //marker3.End();
+
+            //markerInMain.End();
         }
+
+        
 
         counts[0] = vertIndex;
         counts[1] = triIndex;
+
+
+        //markerPreMain.End();
+
+        //markerFull.End();
     }
 
     /// <summary>
@@ -186,6 +332,8 @@ public struct MeshCreateJob : IJob
     private Boolean isNeighborSolid(NativeArray<BlockData> blockData, int index, int face)
     {
 
+        ProfilerMarker marker = new ProfilerMarker("IsNeighbor");
+        marker.Begin();
         int neighborIndex = -1;
 
 
@@ -229,6 +377,7 @@ public struct MeshCreateJob : IJob
                 break;
         }
 
+        marker.End();
 
         if (neighborIndex < 0)
         {

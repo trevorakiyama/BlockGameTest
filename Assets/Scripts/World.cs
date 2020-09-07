@@ -1,36 +1,33 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+﻿using System.Collections.Generic;
 using Unity.Profiling;
 using UnityEngine;
 
+/// <summary>
+/// Defines the <see cref="World" />.
+/// </summary>
 public class World : MonoBehaviour
 {
-
-
     public static readonly int chunksWide = 1;
+
     public static readonly int chunksHeight = 1;
+
     public static readonly int chunksLong = 1;
 
-
-    Dictionary<Vector3Int, Chunk> chunksd = new Dictionary<Vector3Int, Chunk>();
-
-
+    internal Dictionary<Vector3Int, Chunk> chunksd = new Dictionary<Vector3Int, Chunk>();
 
     public Material textureMaterials;
 
     private static World instance;
 
-    Vector3 playerPosition;
-
-
-
+    internal Vector3 playerPosition;
 
     // Start is called before the first frame update
+    /// <summary>
+    /// The Start.
+    /// </summary>
     public void Start()
     {
-       
+
         instance = this;
 
 
@@ -38,16 +35,18 @@ public class World : MonoBehaviour
         newChunk.initializeChunkData();
 
 
-        chunksd.Add(new Vector3Int(0,0,0), newChunk);
-
+        chunksd.Add(new Vector3Int(0, 0, 0), newChunk);
     }
 
-    ProfilerMarker marker1 = new ProfilerMarker("Update 1");
-    ProfilerMarker marker2 = new ProfilerMarker("Update 2");
+    internal ProfilerMarker marker1 = new ProfilerMarker("Update 1");
 
+    internal ProfilerMarker marker2 = new ProfilerMarker("Update 2");
 
     // Update is called once per frame
-    void Update()
+    /// <summary>
+    /// The Update.
+    /// </summary>
+    internal void Update()
     {
 
         GameObject player = GameObject.Find("Camera2");
@@ -63,16 +62,16 @@ public class World : MonoBehaviour
 
 
 
-        Vector3Int chunkCoord = getChunkCoord(playerPosition) ;
+        Vector3Int chunkCoord = getChunkCoord(playerPosition);
 
 
 
 
-        for (int x = chunkCoord.x - 1; x < chunkCoord.x  ; x++)
+        for (int x = chunkCoord.x-1 ; x <= chunkCoord.x+1; x++)
         {
             for (int y = 0; y <= 0; y++)
             {
-                for (int z = chunkCoord.z - 1; z < chunkCoord.z ; z++)
+                for (int z = chunkCoord.z-1 ; z <= chunkCoord.z+1; z++)
                 {
 
                     Vector3Int currChunk = new Vector3Int(x, y, z);
@@ -93,12 +92,14 @@ public class World : MonoBehaviour
                         //foundChunk.initializeChunkData();
                         chunksd.Add(currChunk, foundChunk);
 
-                        
-                        
+
+
                     }
 
                     marker2.Begin();
+
                     foundChunk.renderChunk(new Vector3(currChunk.x * Chunk.chunkWidth, currChunk.y * Chunk.chunkHeight, currChunk.z * Chunk.chunkWidth));
+                    //foundChunk.renderChunk(new Vector3(0,0,0));
                     marker2.End();
 
 
@@ -107,13 +108,32 @@ public class World : MonoBehaviour
 
 
         }
-
     }
 
-    
+    /// <summary>
+    /// The getChunkCoord.
+    /// </summary>
+    /// <param name="pos">The pos<see cref="Vector3"/>.</param>
+    /// <returns>The <see cref="Vector3Int"/>.</returns>
     private Vector3Int getChunkCoord(Vector3 pos)
     {
+
+
         Vector3Int posInt = Vector3Int.FloorToInt(pos);
+        if (posInt.x < 0)
+        {
+            posInt.x -= Chunk.chunkWidth;
+        }
+
+        if (posInt.y < 0)
+        {
+            posInt.y -= Chunk.chunkHeight;
+        }
+
+        if (posInt.z < 0)
+        {
+            posInt.z -= Chunk.chunkWidth;
+        }
 
 
         Vector3Int chunkCoord = new Vector3Int(posInt.x / Chunk.chunkWidth, posInt.y / Chunk.chunkHeight, posInt.z / Chunk.chunkWidth);
@@ -121,22 +141,17 @@ public class World : MonoBehaviour
         return chunkCoord;
     }
 
-
-
+    /// <summary>
+    /// The OnDestroy.
+    /// </summary>
     protected void OnDestroy()
     {
 
-        foreach (Chunk chunk in chunksd.Values) {
+        foreach (Chunk chunk in chunksd.Values)
+        {
 
             chunk.cleanup();
 
         }
-
-
-
-
-
     }
-
-
 }
