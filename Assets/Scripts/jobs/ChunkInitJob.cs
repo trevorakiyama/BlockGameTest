@@ -21,6 +21,7 @@ public struct ChunkInitJob : IJob
     void IJob.Execute()
     {
 
+        //BlockData[] resultArr = new BlockData[chunkHeight * chunkWidth * chunkWidth];
 
 
         // chunkBlocks = new Block[chunkWidth, chunkHeight, chunkWidth];
@@ -33,8 +34,8 @@ public struct ChunkInitJob : IJob
                 {
                     int m = 16 - Math.Abs(x + z - 15) / 2;
 
-                    BlockData data = result[x + y * chunkWidth +  z * chunkHeight * chunkWidth];
-
+                    //BlockData data = result[x + y * chunkWidth +  z * chunkHeight * chunkWidth];
+                    BlockData data = new BlockData();
                     if (y < m)
                     {
 
@@ -53,13 +54,11 @@ public struct ChunkInitJob : IJob
                     int calcIndex = x + y * chunkWidth + z * chunkHeight * chunkWidth;
 
                     result[x + y * chunkWidth + z * chunkHeight * chunkWidth] = data;
-
                 }
             }
 
 
         }
-
 
     }
 }

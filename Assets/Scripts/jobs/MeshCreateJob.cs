@@ -8,7 +8,7 @@ using UnityEngine;
 /// <summary>
 /// Defines the <see cref="MeshCreateJob" />.
 /// </summary>
-
+[BurstCompile]
 public struct MeshCreateJob : IJob
 {
     public NativeArray<BlockData> blockData;
