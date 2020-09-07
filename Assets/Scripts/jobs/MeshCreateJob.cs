@@ -10,9 +10,9 @@ public struct MeshCreateJob : IJob
 {
 
     public NativeArray<BlockData> blockData;
-    public NativeArray<ChunkMeshVertexData> verts;
+    public NativeList<ChunkMeshVertexData> verts;
     public int vertCount;
-    public NativeArray<int> tris;
+    public NativeList<int> tris;
     public int triCount;
 
     public int sizex;
@@ -87,6 +87,11 @@ public struct MeshCreateJob : IJob
     public void Execute()
     {
 
+
+        
+
+
+
         int vertIndex = 0;
         int triIndex = 0;
 
@@ -126,10 +131,16 @@ public struct MeshCreateJob : IJob
                 {
                     // add the face to the mesh
 
-                    ChunkMeshVertexData vertsout0 = verts[vertIndex];
-                    ChunkMeshVertexData vertsout1 = verts[vertIndex +1];
-                    ChunkMeshVertexData vertsout2 = verts[vertIndex +2];
-                    ChunkMeshVertexData vertsout3 = verts[vertIndex +3];
+                    //ChunkMeshVertexData vertsout0 = verts[vertIndex];
+                    //ChunkMeshVertexData vertsout1 = verts[vertIndex +1];
+                    //ChunkMeshVertexData vertsout2 = verts[vertIndex +2];
+                    //ChunkMeshVertexData vertsout3 = verts[vertIndex +3];
+
+                    ChunkMeshVertexData vertsout0 = new ChunkMeshVertexData();
+                    ChunkMeshVertexData vertsout1 = new ChunkMeshVertexData();
+                    ChunkMeshVertexData vertsout2 = new ChunkMeshVertexData();
+                    ChunkMeshVertexData vertsout3 = new ChunkMeshVertexData();
+
 
                     vertsout0.pos = _vertices[_faceVertices[face, 0]] + new Vector3(x, y, z);
                     vertsout1.pos = _vertices[_faceVertices[face, 1]] + new Vector3(x, y, z);
@@ -147,17 +158,33 @@ public struct MeshCreateJob : IJob
                     vertsout2.uv = new Vector2(1, 1);
                     vertsout3.uv = new Vector2(1, 0);
 
-                    verts[vertIndex] = vertsout0;
-                    verts[vertIndex+1] = vertsout1;
-                    verts[vertIndex+2] = vertsout2;
-                    verts[vertIndex+3] = vertsout3;
+                    //verts[vertIndex] = vertsout0;
+                    //verts[vertIndex+1] = vertsout1;
+                    //verts[vertIndex+2] = vertsout2;
+                    //verts[vertIndex+3] = vertsout3;
 
-                    tris[triIndex] = _triangleVertices[face, 0] + vertIndex;
-                    tris[triIndex + 1] = _triangleVertices[face, 1] + vertIndex;
-                    tris[triIndex + 2] = _triangleVertices[face, 2] + vertIndex;
-                    tris[triIndex + 3] = _triangleVertices[face, 3] + vertIndex;
-                    tris[triIndex + 4] = _triangleVertices[face, 4] + vertIndex;
-                    tris[triIndex + 5] = _triangleVertices[face, 5] + vertIndex;
+                    verts.Add(vertsout0);
+                    verts.Add(vertsout1);
+                    verts.Add(vertsout2);
+                    verts.Add(vertsout3);
+
+
+
+                    //tris[triIndex] = _triangleVertices[face, 0] + vertIndex;
+                    //tris[triIndex + 1] = _triangleVertices[face, 1] + vertIndex;
+                    //tris[triIndex + 2] = _triangleVertices[face, 2] + vertIndex;
+                    //tris[triIndex + 3] = _triangleVertices[face, 3] + vertIndex;
+                    //tris[triIndex + 4] = _triangleVertices[face, 4] + vertIndex;
+                    //tris[triIndex + 5] = _triangleVertices[face, 5] + vertIndex;
+
+
+                    tris.Add(_triangleVertices[face, 0] + vertIndex);
+                    tris.Add(_triangleVertices[face, 1] + vertIndex);
+                    tris.Add(_triangleVertices[face, 2] + vertIndex);
+                    tris.Add(_triangleVertices[face, 3] + vertIndex);
+                    tris.Add(_triangleVertices[face, 4] + vertIndex);
+                    tris.Add(_triangleVertices[face, 5] + vertIndex);
+
 
                     vertIndex += 4;
                     triIndex += 6;

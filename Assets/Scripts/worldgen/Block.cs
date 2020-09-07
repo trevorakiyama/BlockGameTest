@@ -159,7 +159,8 @@ public class Block
         } 
         else
         {
-            return myChunk.chunkBlocks[x, y, z];
+            //return myChunk.chunkBlocks[x, y, z];
+            throw new NotImplementedException("NOT IMPEMENTED YET");
         }
 
     }

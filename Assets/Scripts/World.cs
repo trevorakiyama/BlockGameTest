@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Unity.Profiling;
@@ -227,7 +228,9 @@ public class World : MonoBehaviour
         Vector3Int blockOffset = Chunk.getChunkRelativeCoord(blockCoord);
 
 
-        return chunk.chunkBlocks[blockOffset.x, blockOffset.y, blockOffset.z];
+        throw new NotImplementedException("Not implemented yet");
+        //return chunk.chunkBlocks[blockOffset.x, blockOffset.y, blockOffset.z];
+
     }
 
 

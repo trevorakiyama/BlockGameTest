@@ -14,8 +14,6 @@ public struct TestJob : IJob
     public void Execute()
     {
 
-
-
         temp.Resize(10, NativeArrayOptions.UninitializedMemory);
         temp[9] = 99;
     }

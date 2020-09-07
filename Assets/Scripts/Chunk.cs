@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Profiling;
@@ -30,20 +31,25 @@ public class Chunk
     public const int chunkWidth = 32;
     public const int chunkHeight = 256;
 
-    public Block[,,] chunkBlocks = new Block[chunkWidth, chunkHeight, chunkWidth];
+    //public Block[,,] chunkBlocks = new Block[chunkWidth, chunkHeight, chunkWidth];
 
 
     public NativeArray<BlockData> blockData = new NativeArray<BlockData>(chunkWidth * chunkWidth * chunkHeight, Allocator.Persistent);
-    public NativeArray<ChunkMeshVertexData> meshVertices = new NativeArray<ChunkMeshVertexData>(chunkWidth * chunkWidth * chunkHeight * 24, Allocator.Persistent);
-    public NativeArray<int> triVerts = new NativeArray<int>(chunkWidth * chunkWidth * chunkHeight * 36 , Allocator.Persistent);
+    //public NativeArray<ChunkMeshVertexData> meshVertices = new NativeArray<ChunkMeshVertexData>(chunkWidth * chunkWidth * chunkHeight * 24, Allocator.Persistent);
+    //public NativeArray<int> triVerts = new NativeArray<int>(chunkWidth * chunkWidth * chunkHeight * 36 , Allocator.Persistent);
 
 
     Boolean dataInitialized = false;
     Boolean recalculateMesh = true;
 
 
+    public static ProfilerMarker marker1 = new ProfilerMarker("Const 1");
+
+
     public Chunk(World world, Vector3Int pos)
     {
+
+        marker1.Begin();
         this.world = world;
         this.pos = pos;
         chunkObject = new GameObject();
@@ -54,7 +60,7 @@ public class Chunk
         //meshRenderer.material = world.textureMaterials;
         meshRenderer.material = world.textureMaterials;
 
-
+        marker1.End();
 
 
         recalculateMesh = true;
@@ -96,6 +102,9 @@ public class Chunk
         job.temp.Dispose();
 
         Debug.LogFormat("Job Val {0}", ret);
+
+        Debug.LogFormat("Sizes {0}, {1}", Marshal.SizeOf(typeof(BlockData)), Marshal.SizeOf(typeof(ChunkMeshVertexData)));
+
     }
 
     public Mesh GetMesh()
@@ -112,6 +121,7 @@ public class Chunk
 
     static ProfilerMarker marker = new ProfilerMarker("MyMarker");
     static ProfilerMarker marker2 = new ProfilerMarker("MyMarker2");
+    static ProfilerMarker marker3 = new ProfilerMarker("MyMarkerJobPart");
 
 
 
@@ -191,41 +201,18 @@ public class Chunk
 
         marker.Begin();
 
-
-        //// get all the faces
-
-        //List<Vector3> vertices = new List<Vector3>();
-        //List<int> triangles = new List<int>();
-        //List<Vector2> uvs = new List<Vector2>();
-        //List<Vector3> normals = new List<Vector3>();
-
-        //int vertexCount = 0;
-
-        //for (int x = 0; x < chunkWidth; x++)
-        //{
-        //    for (int y = 0; y < chunkHeight; y++)
-        //    {
-        //        for (int z = 0; z < chunkWidth; z++)
-        //        {
-
-
-        //            Block block = chunkBlocks[x, y, z];
-
-        //            if (block == null)
-        //            {
-        //                continue;
-        //            }
-
-        //            int newVertices = block.addVoxelMeshData(vertices, triangles, uvs, normals, vertexCount);
-
-        //            vertexCount += newVertices;
-        //        }
-        //    }
-        //}
-
+        marker3.Begin();
 
 
         NativeArray<int> returnCounts = new NativeArray<int>(2, Allocator.TempJob);
+
+        //NativeArray<ChunkMeshVertexData> meshVertices = new NativeArray<ChunkMeshVertexData>(chunkWidth * chunkWidth * chunkHeight * 24, Allocator.TempJob);
+        //NativeArray<int> triVerts = new NativeArray<int>(chunkWidth * chunkWidth * chunkHeight * 36, Allocator.TempJob);
+
+        NativeList<ChunkMeshVertexData> meshVertices = new NativeList<ChunkMeshVertexData>(0, Allocator.TempJob);
+        NativeList<int> triVerts = new NativeList<int>(0, Allocator.TempJob);
+
+
 
         MeshCreateJob job = new MeshCreateJob();
         job.blockData = blockData;
@@ -236,6 +223,8 @@ public class Chunk
         job.sizez = chunkWidth;
         job.counts = returnCounts;
         JobHandle handle = job.Schedule();
+
+        marker3.End();
 
         handle.Complete();
 
@@ -258,7 +247,7 @@ public class Chunk
 
         mesh.SetVertexBufferParams(vertCount, layout);
 
-        mesh.SetVertexBufferData(job.verts, 0, 0, vertCount);
+        mesh.SetVertexBufferData((NativeArray<ChunkMeshVertexData>)job.verts, 0, 0, vertCount);
 
         int[] trilist = new int[triCount];
         for (int t = 0; t < triCount; t++)
@@ -268,10 +257,11 @@ public class Chunk
 
         mesh.triangles = trilist;
 
-
-
-
         mesh.RecalculateBounds();
+
+
+        meshVertices.Dispose();
+        triVerts.Dispose();
 
 
         marker.End();
@@ -291,138 +281,138 @@ public class Chunk
 
         // get all the faces
 
-        List<Vector3> vertices = new List<Vector3>();
-        List<int> triangles = new List<int>();
-        List<Vector2> uvs = new List<Vector2>();
-        List<Vector3> normals = new List<Vector3>();
+        //List<Vector3> vertices = new List<Vector3>();
+        //List<int> triangles = new List<int>();
+        //List<Vector2> uvs = new List<Vector2>();
+        //List<Vector3> normals = new List<Vector3>();
 
-        int vertexCount = 0;
+        //int vertexCount = 0;
 
-        for (int x = 0; x < chunkWidth; x++)
-        {
-            for (int y = 0; y < chunkHeight; y++)
-            {
-                for (int z = 0; z < chunkWidth; z++)
-                {
+        //for (int x = 0; x < chunkWidth; x++)
+        //{
+        //    for (int y = 0; y < chunkHeight; y++)
+        //    {
+        //        for (int z = 0; z < chunkWidth; z++)
+        //        {
                     
 
-                    Block block = chunkBlocks[x, y, z];
+        //            Block block = chunkBlocks[x, y, z];
 
-                    if (block == null)
-                    {
-                        continue;
-                    }
+        //            if (block == null)
+        //            {
+        //                continue;
+        //            }
 
-                    int newVertices = block.addVoxelMeshData(vertices, triangles, uvs, normals, vertexCount);
+        //            int newVertices = block.addVoxelMeshData(vertices, triangles, uvs, normals, vertexCount);
 
-                    vertexCount += newVertices;
-                }
-            }
-        }
-
-
-
-        NativeArray<int> returnCounts = new NativeArray<int>(2, Allocator.TempJob);
-
-        MeshCreateJob job = new MeshCreateJob();
-        job.blockData = blockData;
-        job.verts = meshVertices;
-        job.tris = triVerts;
-        job.sizex = chunkWidth;
-        job.sizey = chunkHeight;
-        job.sizez = chunkWidth;
-        job.counts = returnCounts;
-        JobHandle handle = job.Schedule();
-
-        handle.Complete();
+        //            vertexCount += newVertices;
+        //        }
+        //    }
+        //}
 
 
 
-        int vertCount = job.counts[0];
-        int triCount = job.counts[1];
-        returnCounts.Dispose();
+        //NativeArray<int> returnCounts = new NativeArray<int>(2, Allocator.TempJob);
+
+        //MeshCreateJob job = new MeshCreateJob();
+        //job.blockData = blockData;
+        //job.verts = meshVertices;
+        //job.tris = triVerts;
+        //job.sizex = chunkWidth;
+        //job.sizey = chunkHeight;
+        //job.sizez = chunkWidth;
+        //job.counts = returnCounts;
+        //JobHandle handle = job.Schedule();
+
+        //handle.Complete();
 
 
-        marker.End();
+
+        //int vertCount = job.counts[0];
+        //int triCount = job.counts[1];
+        //returnCounts.Dispose();
+
+
+        //marker.End();
 
 
         Mesh mesh = new Mesh();
-        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+        //mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
 
-        var layout = new[]
-        {
-            new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
-            new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
-            new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2)
-        };
+        //var layout = new[]
+        //{
+        //    new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
+        //    new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
+        //    new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2)
+        //};
 
-        if (true)
-        {
-
-
-            mesh.SetVertexBufferParams(vertCount, layout);
-
-            mesh.SetVertexBufferData(job.verts, 0, 0, vertCount);
-
-            int[] trilist = new int[triCount];
-            for (int t = 0; t < triCount; t++)
-            {
-                trilist[t] = job.tris[t];
-            }
-
-            mesh.triangles = trilist;
+        //if (true)
+        //{
 
 
-        }
-        else
-        {
-            if (true)
-            {
+        //    mesh.SetVertexBufferParams(vertCount, layout);
+
+        //    mesh.SetVertexBufferData(job.verts, 0, 0, vertCount);
+
+        //    int[] trilist = new int[triCount];
+        //    for (int t = 0; t < triCount; t++)
+        //    {
+        //        trilist[t] = job.tris[t];
+        //    }
+
+        //    mesh.triangles = trilist;
+
+
+        //}
+        //else
+        //{
+        //    if (true)
+        //    {
                
                
 
 
-                Vector3[] verts = new Vector3[vertCount];
-                Vector3[] norms = new Vector3[vertCount];
-                Vector2[] uv = new Vector2[vertCount];
+        //        Vector3[] verts = new Vector3[vertCount];
+        //        Vector3[] norms = new Vector3[vertCount];
+        //        Vector2[] uv = new Vector2[vertCount];
 
 
 
-                for (int i=0; i < vertCount; i++)
-                {
-                    ChunkMeshVertexData data = job.verts[i];
+        //        for (int i=0; i < vertCount; i++)
+        //        {
+        //            ChunkMeshVertexData data = job.verts[i];
 
-                    verts[i] = data.pos;
-                    norms[i] = data.normal;
-                    uv[i] = data.uv;
+        //            verts[i] = data.pos;
+        //            norms[i] = data.normal;
+        //            uv[i] = data.uv;
 
-                }
+        //        }
 
-                mesh.vertices = verts;
-                mesh.normals = norms;
-                mesh.uv = uv;
-
-
-                int[] trilist = new int[triCount];
-                for (int t = 0; t < triCount; t++)
-                {
-                    trilist[t] = job.tris[t];
-                }
-
-                mesh.triangles = trilist;
-
-            }
-            else
-            {
+        //        mesh.vertices = verts;
+        //        mesh.normals = norms;
+        //        mesh.uv = uv;
 
 
-                mesh.vertices = vertices.ToArray();
-                mesh.triangles = triangles.ToArray();
-                mesh.uv = uvs.ToArray();
-                mesh.normals = normals.ToArray();
+        //        int[] trilist = new int[triCount];
+        //        for (int t = 0; t < triCount; t++)
+        //        {
+        //            trilist[t] = job.tris[t];
+        //        }
 
-            }
-        }
+        //        mesh.triangles = trilist;
+
+        //    }
+        //    else
+        //    {
+
+
+        //        mesh.vertices = vertices.ToArray();
+        //        mesh.triangles = triangles.ToArray();
+        //        mesh.uv = uvs.ToArray();
+        //        mesh.normals = normals.ToArray();
+
+        //    }
+        //}
 
 
         mesh.RecalculateBounds();
@@ -485,10 +475,11 @@ public class Chunk
 
         if (blockData.IsCreated)
         {
-            blockData.Dispose();
-            meshVertices.Dispose();
-            triVerts.Dispose();
+            
+            //meshVertices.Dispose();
+            //triVerts.Dispose();
         }
+        blockData.Dispose();
     }
 
 
