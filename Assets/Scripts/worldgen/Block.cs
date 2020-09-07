@@ -53,117 +53,117 @@ public class Block
 
     static ProfilerMarker marker = new ProfilerMarker("NEIGBOR");
 
-    public int addVoxelMeshData(List<Vector3> vertices, List<int> triangles, List<Vector2> uvs, List<Vector3> normals, int vertexCount)
-    {
+    //public int addVoxelMeshData(List<Vector3> vertices, List<int> triangles, List<Vector2> uvs, List<Vector3> normals, int vertexCount)
+    //{
 
 
 
-        Boolean[] renderFaces = new bool[6];
-        Boolean foundFace = false;
-        List<VoxelFace> faces = new List<VoxelFace>();
+    //    Boolean[] renderFaces = new bool[6];
+    //    Boolean foundFace = false;
+    //    List<VoxelFace> faces = new List<VoxelFace>();
 
 
-        for (int i = 0; i < 6; i++)
-        {
-            marker.Begin();
-            Block neighbor = getNeighborBlock(faceDirVec[i]);
-            marker.End();
+    //    for (int i = 0; i < 6; i++)
+    //    {
+    //        marker.Begin();
+    //        Block neighbor = getNeighborBlock(faceDirVec[i]);
+    //        marker.End();
 
-            if (neighbor != null && neighbor.isSolid)
-            {
-                renderFaces[i] = false;
-                continue;
-            }
-            foundFace = true;
-            renderFaces[i] = true;
-        }
+    //        if (neighbor != null && neighbor.isSolid)
+    //        {
+    //            renderFaces[i] = false;
+    //            continue;
+    //        }
+    //        foundFace = true;
+    //        renderFaces[i] = true;
+    //    }
 
-        if (foundFace == false)
-        {
-            return 0;
-        }
-
-
-        return Voxel.addVoxelMeshData(renderFaces, Chunk.getChunkRelativeCoord(myPosWorld), vertices, triangles, uvs, normals, vertexCount);
-    }
+    //    if (foundFace == false)
+    //    {
+    //        return 0;
+    //    }
 
 
-
-
-
-
-
-    public VoxelMeshData GetVoxelMeshData()
-    {
-        // Perhaps this should go into a separate Block Renderer 
-
-        // create a new VoxelData Object for this bloxk
-        // This Voxel Data will be sent to create a Mesh 
-
-        // Note this is probably too exepensive but clearer for right now
-        // Maybe even get some of this from Lua?
-
-        if (!isVisible)
-        {
-            return null;
-        }
-
-        // determine the faces that need to be added and then add them
-
-
-
-        Boolean[] renderFaces = new bool[6];
-        Boolean foundFace = false;
-        List<VoxelFace> faces = new List<VoxelFace>();
-
-
-        for (int i = 0; i < 6; i++)
-        {
-            Block neighbor = getNeighborBlock(faceDirVec[i]);
-
-            if (neighbor != null  && neighbor.isSolid)
-            {
-                renderFaces[i] = false;
-                continue;
-            }
-            foundFace = true;
-            renderFaces[i] = true;
-        }
-
-        if (foundFace == false)
-        {
-            return null;
-        }
-
-
-
-        return Voxel.getVoxelMeshData(renderFaces, Chunk.getChunkRelativeCoord(myPosWorld));
-    }
+    //    return Voxel.addVoxelMeshData(renderFaces, Chunk.getChunkRelativeCoord(myPosWorld), vertices, triangles, uvs, normals, vertexCount);
+    //}
 
 
 
 
 
-    private Block getNeighborBlock(Vector3Int neighborRelative)
-    {
-        int x = myPosChunk.x + neighborRelative.x;
-        int y = myPosChunk.y + neighborRelative.y;
-        int z = myPosChunk.z + neighborRelative.z;
 
-        if (x < 0 || x >= Chunk.chunkWidth
-            || y < 0 || y >= Chunk.chunkHeight
-            || z < 0 || z >= Chunk.chunkWidth)
-        {
-            // TODO:  Lookup the neighbor chunks per mesh render because they can be very expensive when called a lot
-            return World.GetBlock(myPosWorld + neighborRelative);
-        } 
-        else
-        {
-            //return myChunk.chunkBlocks[x, y, z];
-            throw new NotImplementedException("NOT IMPEMENTED YET");
-        }
 
-    }
+    //public VoxelMeshData GetVoxelMeshData()
+    //{
+    //    // Perhaps this should go into a separate Block Renderer 
+
+    //    // create a new VoxelData Object for this bloxk
+    //    // This Voxel Data will be sent to create a Mesh 
+
+    //    // Note this is probably too exepensive but clearer for right now
+    //    // Maybe even get some of this from Lua?
+
+    //    if (!isVisible)
+    //    {
+    //        return null;
+    //    }
+
+    //    // determine the faces that need to be added and then add them
+
+
+
+    //    Boolean[] renderFaces = new bool[6];
+    //    Boolean foundFace = false;
+    //    List<VoxelFace> faces = new List<VoxelFace>();
+
+
+    //    for (int i = 0; i < 6; i++)
+    //    {
+    //        Block neighbor = getNeighborBlock(faceDirVec[i]);
+
+    //        if (neighbor != null  && neighbor.isSolid)
+    //        {
+    //            renderFaces[i] = false;
+    //            continue;
+    //        }
+    //        foundFace = true;
+    //        renderFaces[i] = true;
+    //    }
+
+    //    if (foundFace == false)
+    //    {
+    //        return null;
+    //    }
+
+
+
+    //    return Voxel.getVoxelMeshData(renderFaces, Chunk.getChunkRelativeCoord(myPosWorld));
+    //}
+
+
+
+
+
+    //private Block getNeighborBlock(Vector3Int neighborRelative)
+    //{
+    //    int x = myPosChunk.x + neighborRelative.x;
+    //    int y = myPosChunk.y + neighborRelative.y;
+    //    int z = myPosChunk.z + neighborRelative.z;
+
+    //    if (x < 0 || x >= Chunk.chunkWidth
+    //        || y < 0 || y >= Chunk.chunkHeight
+    //        || z < 0 || z >= Chunk.chunkWidth)
+    //    {
+    //        // TODO:  Lookup the neighbor chunks per mesh render because they can be very expensive when called a lot
+    //        return World.GetBlock(myPosWorld + neighborRelative);
+    //    } 
+    //    else
+    //    {
+    //        //return myChunk.chunkBlocks[x, y, z];
+    //        throw new NotImplementedException("NOT IMPEMENTED YET");
+    //    }
+
+    //}
 
 
 }

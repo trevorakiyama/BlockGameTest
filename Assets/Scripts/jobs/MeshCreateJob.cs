@@ -87,11 +87,6 @@ public struct MeshCreateJob : IJob
     public void Execute()
     {
 
-
-        
-
-
-
         int vertIndex = 0;
         int triIndex = 0;
 
@@ -113,8 +108,6 @@ public struct MeshCreateJob : IJob
                 }
             }
 
-
-
             BlockData block = blockData[i];
 
 
@@ -130,11 +123,6 @@ public struct MeshCreateJob : IJob
                 if (! isNeighborSolid(blockData, i, face))
                 {
                     // add the face to the mesh
-
-                    //ChunkMeshVertexData vertsout0 = verts[vertIndex];
-                    //ChunkMeshVertexData vertsout1 = verts[vertIndex +1];
-                    //ChunkMeshVertexData vertsout2 = verts[vertIndex +2];
-                    //ChunkMeshVertexData vertsout3 = verts[vertIndex +3];
 
                     ChunkMeshVertexData vertsout0 = new ChunkMeshVertexData();
                     ChunkMeshVertexData vertsout1 = new ChunkMeshVertexData();
@@ -158,25 +146,10 @@ public struct MeshCreateJob : IJob
                     vertsout2.uv = new Vector2(1, 1);
                     vertsout3.uv = new Vector2(1, 0);
 
-                    //verts[vertIndex] = vertsout0;
-                    //verts[vertIndex+1] = vertsout1;
-                    //verts[vertIndex+2] = vertsout2;
-                    //verts[vertIndex+3] = vertsout3;
-
                     verts.Add(vertsout0);
                     verts.Add(vertsout1);
                     verts.Add(vertsout2);
                     verts.Add(vertsout3);
-
-
-
-                    //tris[triIndex] = _triangleVertices[face, 0] + vertIndex;
-                    //tris[triIndex + 1] = _triangleVertices[face, 1] + vertIndex;
-                    //tris[triIndex + 2] = _triangleVertices[face, 2] + vertIndex;
-                    //tris[triIndex + 3] = _triangleVertices[face, 3] + vertIndex;
-                    //tris[triIndex + 4] = _triangleVertices[face, 4] + vertIndex;
-                    //tris[triIndex + 5] = _triangleVertices[face, 5] + vertIndex;
-
 
                     tris.Add(_triangleVertices[face, 0] + vertIndex);
                     tris.Add(_triangleVertices[face, 1] + vertIndex);
@@ -190,10 +163,7 @@ public struct MeshCreateJob : IJob
                     triIndex += 6;
 
                 }
-
-
             }
-
         }
 
         counts[0] = vertIndex;

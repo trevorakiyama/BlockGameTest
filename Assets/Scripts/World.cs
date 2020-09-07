@@ -190,21 +190,21 @@ public class World : MonoBehaviour
 
 
 
-    public Chunk getChunk(Vector3Int chunkAddress)
-    {
+    //public Chunk getChunk(Vector3Int chunkAddress)
+    //{
 
 
-        if (chunkAddress.x < 0 || chunkAddress.x >= chunksWide
-            || chunkAddress.y < 0 || chunkAddress.x >= chunksHeight
-            || chunkAddress.z < 0 || chunkAddress.x >= chunksLong )
-        {
-            return null;
-        }
+    //    if (chunkAddress.x < 0 || chunkAddress.x >= chunksWide
+    //        || chunkAddress.y < 0 || chunkAddress.x >= chunksHeight
+    //        || chunkAddress.z < 0 || chunkAddress.x >= chunksLong )
+    //    {
+    //        return null;
+    //    }
 
 
-        //return chunks[chunkAddress.x, chunkAddress.y, chunkAddress.z];
-        return chunksd[chunkAddress];
-    }
+    //    //return chunks[chunkAddress.x, chunkAddress.y, chunkAddress.z];
+    //    return chunksd[chunkAddress];
+    //}
 
 
     public static Block GetBlock(Vector3Int blockCoord)
