@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Profiling;
@@ -10,42 +7,46 @@ using UnityEngine.ParticleSystemJobs;
 using UnityEngine.Rendering;
 
 /// <summary>
-/// Class <c>Chunk</c> represents a chunk of block voxels for managmeent and rendering
+/// Class <c>Chunk</c> represents a chunk of block voxels for managmeent and rendering.
 /// </summary>
 public class Chunk
 {
-    GameObject chunkObject;
-    MeshRenderer meshRenderer;
-    MeshFilter meshFilter;
-    World world;
-    Vector3Int pos;
+    internal GameObject chunkObject;
 
+    internal MeshRenderer meshRenderer;
 
+    internal MeshFilter meshFilter;
+
+    internal World world;
+
+    internal Vector3Int pos;
 
     // A chunk will contain:
     // A mesh object for manipulation and rendering
     // an 3d array representing all the block in the chunk
-
-    // A chunk can return a mesh for rendering
-
     public const int chunkWidth = 32;
+
     public const int chunkHeight = 256;
-
-
 
     public NativeArray<BlockData> blockData = new NativeArray<BlockData>(chunkWidth * chunkWidth * chunkHeight, Allocator.Persistent);
 
+    internal Boolean dataInitialized = false;
 
+    internal Boolean recalculateMesh = true;
 
-    Boolean dataInitialized = false;
-    Boolean recalculateMesh = true;
+    internal static ProfilerMarker marker = new ProfilerMarker("MyMarker");
 
-    static ProfilerMarker marker = new ProfilerMarker("MyMarker");
-    static ProfilerMarker marker2 = new ProfilerMarker("MyMarker2");
-    static ProfilerMarker marker3 = new ProfilerMarker("MyMarkerJobPart");
+    internal static ProfilerMarker marker2 = new ProfilerMarker("MyMarker2");
+
+    internal static ProfilerMarker marker3 = new ProfilerMarker("MyMarkerJobPart");
+
     public static ProfilerMarker marker1 = new ProfilerMarker("Const 1");
 
-
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Chunk"/> class.
+    /// </summary>
+    /// <param name="world">The world<see cref="World"/>.</param>
+    /// <param name="pos">The pos<see cref="Vector3Int"/>.</param>
     public Chunk(World world, Vector3Int pos)
     {
 
@@ -66,6 +67,10 @@ public class Chunk
         recalculateMesh = true;
     }
 
+    /// <summary>
+    /// The renderChunk.
+    /// </summary>
+    /// <param name="offset">The offset<see cref="Vector3"/>.</param>
     public void renderChunk(Vector3 offset)
     {
         if (recalculateMesh)
@@ -77,11 +82,12 @@ public class Chunk
 
             recalculateMesh = false;
         }
-        
     }
 
-    
-
+    /// <summary>
+    /// The GetMesh.
+    /// </summary>
+    /// <returns>The <see cref="Mesh"/>.</returns>
     public Mesh GetMesh()
     {
 
@@ -94,10 +100,9 @@ public class Chunk
         return BuildMesh();
     }
 
-
-
-
-
+    /// <summary>
+    /// The initializeChunkData.
+    /// </summary>
     public void initializeChunkData()
     {
         marker2.Begin();
@@ -113,21 +118,24 @@ public class Chunk
         handle.Complete();
 
         marker2.End();
-
     }
 
-
-
+    /// <summary>
+    /// The getBlockData.
+    /// </summary>
+    /// <param name="blockCoord">The blockCoord<see cref="Vector3Int"/>.</param>
+    /// <returns>The <see cref="BlockData"/>.</returns>
     private BlockData getBlockData(Vector3Int blockCoord)
     {
         int index = blockCoord.x + blockCoord.x * blockCoord.y + blockCoord.x * blockCoord.y * blockCoord.z;
 
         return blockData[index];
-
     }
 
-
-
+    /// <summary>
+    /// The BuildMesh.
+    /// </summary>
+    /// <returns>The <see cref="Mesh"/>.</returns>
     public Mesh BuildMesh()
     {
 
@@ -199,9 +207,11 @@ public class Chunk
         return mesh;
     }
 
-
-
-
+    /// <summary>
+    /// The getChunkRelativeCoord.
+    /// </summary>
+    /// <param name="worldCoord">The worldCoord<see cref="Vector3Int"/>.</param>
+    /// <returns>The <see cref="Vector3Int"/>.</returns>
     public static Vector3Int getChunkRelativeCoord(Vector3Int worldCoord)
     {
         Vector3Int offset = new Vector3Int(worldCoord.x % chunkWidth, worldCoord.y % chunkHeight, worldCoord.z % chunkWidth);
@@ -223,6 +233,11 @@ public class Chunk
         return offset;
     }
 
+    /// <summary>
+    /// The getChunkCoord.
+    /// </summary>
+    /// <param name="worldCoord">The worldCoord<see cref="Vector3Int"/>.</param>
+    /// <returns>The <see cref="Vector3Int"/>.</returns>
     public static Vector3Int getChunkCoord(Vector3Int worldCoord)
     {
 
@@ -244,18 +259,16 @@ public class Chunk
         return chunkCoord;
     }
 
-
-
+    /// <summary>
+    /// The cleanup.
+    /// </summary>
     public void cleanup()
     {
 
         if (blockData.IsCreated)
         {
-            
+
         }
         blockData.Dispose();
     }
-
-
-
 }

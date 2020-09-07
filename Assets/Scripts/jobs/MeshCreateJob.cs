@@ -1,33 +1,38 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 
+/// <summary>
+/// Defines the <see cref="MeshCreateJob" />.
+/// </summary>
 public struct MeshCreateJob : IJob
 {
-
     public NativeArray<BlockData> blockData;
+
     public NativeList<ChunkMeshVertexData> verts;
+
     public int vertCount;
+
     public NativeList<int> tris;
+
     public int triCount;
 
     public int sizex;
+
     public int sizey;
+
     public int sizez;
 
     public int x;
+
     public int y;
+
     public int z;
 
     public NativeArray<int> counts;
 
-
-
-    static Vector2[] _uvs = new Vector2[]
+    internal static Vector2[] _uvs = new Vector2[]
         {
         new Vector2(0, 0),
         new Vector2(0, 1),
@@ -35,7 +40,7 @@ public struct MeshCreateJob : IJob
         new Vector2(1, 0)
         };
 
-    static Vector3[] _normals = new Vector3[]
+    internal static Vector3[] _normals = new Vector3[]
     {
         new Vector3(0,1,0), // Top
         new Vector3(0,-1,0),
@@ -46,7 +51,7 @@ public struct MeshCreateJob : IJob
 
     };
 
-    static Vector3[] _vertices = new Vector3[]
+    internal static Vector3[] _vertices = new Vector3[]
     {
         new Vector3(0,0,0), // 0
         new Vector3(1,0,0), // 1
@@ -58,7 +63,7 @@ public struct MeshCreateJob : IJob
         new Vector3(1,1,1)  // 7
     };
 
-    static int[,] _faceVertices = new int[,]
+    internal static int[,] _faceVertices = new int[,]
  {
         { 2, 6, 7, 3},
         { 4, 0, 1, 5},
@@ -68,7 +73,7 @@ public struct MeshCreateJob : IJob
         { 4, 6, 2, 0}
  };
 
-    static int[,] _triangleVertices = new int[,]
+    internal static int[,] _triangleVertices = new int[,]
     {
         { 0, 1, 3, 3, 1, 2 },
         { 0, 1, 3, 3, 1, 2 },
@@ -78,12 +83,13 @@ public struct MeshCreateJob : IJob
         { 0, 1, 3, 3, 1, 2 }
     };
 
-
-
     // TODO: make this come from the block rather than hard coding
-    static int[] materialIndex = new int[]
+    internal static int[] materialIndex = new int[]
         { 12, 13, 14,15,8, 9 };
 
+    /// <summary>
+    /// The Execute.
+    /// </summary>
     public void Execute()
     {
 
@@ -99,7 +105,7 @@ public struct MeshCreateJob : IJob
             if (x == sizex)
             {
                 x = 0;
-                y = y+1;
+                y = y + 1;
 
                 if (y == sizey)
                 {
@@ -111,7 +117,7 @@ public struct MeshCreateJob : IJob
             BlockData block = blockData[i];
 
 
-            if (! block.isVisible)
+            if (!block.isVisible)
             {
                 continue;
             }
@@ -120,7 +126,7 @@ public struct MeshCreateJob : IJob
             {
 
 
-                if (! isNeighborSolid(blockData, i, face))
+                if (!isNeighborSolid(blockData, i, face))
                 {
                     // add the face to the mesh
 
@@ -168,20 +174,25 @@ public struct MeshCreateJob : IJob
 
         counts[0] = vertIndex;
         counts[1] = triIndex;
-
     }
 
-
+    /// <summary>
+    /// The isNeighborSolid.
+    /// </summary>
+    /// <param name="blockData">The blockData<see cref="NativeArray{BlockData}"/>.</param>
+    /// <param name="index">The index<see cref="int"/>.</param>
+    /// <param name="face">The face<see cref="int"/>.</param>
+    /// <returns>The <see cref="Boolean"/>.</returns>
     private Boolean isNeighborSolid(NativeArray<BlockData> blockData, int index, int face)
     {
 
         int neighborIndex = -1;
 
 
-        switch(face)
+        switch (face)
         {
-            case 0: 
-                if (y < sizey -1)
+            case 0:
+                if (y < sizey - 1)
                 {
                     neighborIndex = index + sizex;
                 }
@@ -225,10 +236,5 @@ public struct MeshCreateJob : IJob
         }
 
         return blockData[neighborIndex].isSolid;
-
     }
-
-
-
 }
-

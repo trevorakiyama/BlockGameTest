@@ -6,7 +6,6 @@ using UnityEngine;
 public struct BlockData
 {
 
-    //public string name;
     public Boolean isSolid;
     public Boolean isVisible;
     public Vector3Int myPosWorld;

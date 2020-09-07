@@ -14,8 +14,6 @@ public class World : MonoBehaviour
     public static readonly int chunksLong = 1;
 
 
-    //Chunk[,,] chunks = new Chunk[chunksWide, chunksHeight, chunksLong];
-
     Dictionary<Vector3Int, Chunk> chunksd = new Dictionary<Vector3Int, Chunk>();
 
 
@@ -41,27 +39,7 @@ public class World : MonoBehaviour
 
 
         chunksd.Add(new Vector3Int(0,0,0), newChunk);
-        
 
-
-
-        //// Temporarily just initialize the chunks
-        //for (int x = 0; x < chunksWide; x++)
-        //{
-        //    for (int y = 0; y < chunksHeight; y++)
-        //    {
-        //        for (int z = 0; z < chunksLong; z++)
-        //        {
-
-        //            Chunk newChunk = new Chunk(this, new Vector3Int(x, y, z));
-        //            newChunk.initializeChunkData();
-
-        //            //chunks[x,y,z] = newChunk;
-
-        //            chunksd.Add(new Vector3Int(x, y, z), newChunk);
-        //        }
-        //    }
-        //}
     }
 
     ProfilerMarker marker1 = new ProfilerMarker("Update 1");
@@ -130,45 +108,6 @@ public class World : MonoBehaviour
 
         }
 
-
-
-
-
-        
-
-        //newChunk.initializeChunkData();
-        //newChunk.renderChunk(new Vector3(chunkCoord.x * Chunk.chunkWidth, chunkCoord.y * Chunk.chunkHeight, chunkCoord.y * Chunk.chunkWidth));
-
-
-
-
-
-
-
-        //chunksd[new Vector3Int(0, 0, 0)].renderChunk(new Vector3(0 * Chunk.chunkWidth, 0 * Chunk.chunkHeight, 0 * Chunk.chunkWidth));
-
-
-
-
-
-
-
-
-        //for (int x = 0; x < chunksWide; x++)
-        //{
-        //    for (int y = 0; y < chunksHeight; y++)
-        //    {
-        //        for (int z = 0; z < chunksLong; z++)
-        //        {
-        //            //chunks[x, y, z].renderChunk(new Vector3(x * 16, y * 16, z * 16));
-        //            if (chunksd.ContainsKey(new Vector3Int(x, y, z)))
-        //                {
-        //                chunksd[new Vector3Int(x, y, z)].renderChunk(new Vector3(x * Chunk.chunkWidth, y * Chunk.chunkHeight, z * Chunk.chunkWidth));
-        //            }
-        //        }
-        //    }
-        //}
-
     }
 
     
@@ -182,56 +121,6 @@ public class World : MonoBehaviour
         return chunkCoord;
     }
 
-    
-
-
-
-
-
-
-
-    //public Chunk getChunk(Vector3Int chunkAddress)
-    //{
-
-
-    //    if (chunkAddress.x < 0 || chunkAddress.x >= chunksWide
-    //        || chunkAddress.y < 0 || chunkAddress.x >= chunksHeight
-    //        || chunkAddress.z < 0 || chunkAddress.x >= chunksLong )
-    //    {
-    //        return null;
-    //    }
-
-
-    //    //return chunks[chunkAddress.x, chunkAddress.y, chunkAddress.z];
-    //    return chunksd[chunkAddress];
-    //}
-
-
-    public static Block GetBlock(Vector3Int blockCoord)
-    {
-
-        // Calculate Chunk
-
-
-        Vector3Int chunkCoord = Chunk.getChunkCoord(blockCoord);
-        // if chunk does not yet exist, then return null;
-
-
-        if (!instance.chunksd.ContainsKey(chunkCoord))
-        {
-            return null;
-        }
-
-        Chunk chunk = instance.chunksd[chunkCoord];
-
-
-        Vector3Int blockOffset = Chunk.getChunkRelativeCoord(blockCoord);
-
-
-        throw new NotImplementedException("Not implemented yet");
-        //return chunk.chunkBlocks[blockOffset.x, blockOffset.y, blockOffset.z];
-
-    }
 
 
     protected void OnDestroy()
