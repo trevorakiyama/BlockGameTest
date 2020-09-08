@@ -10,4 +10,5 @@ public struct BlockData
     public Boolean isVisible;
     public Vector3Int myPosWorld;
     public Vector3Int myPosChunk;
+
 }

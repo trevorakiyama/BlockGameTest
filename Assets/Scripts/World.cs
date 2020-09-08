@@ -49,10 +49,11 @@ public class World : MonoBehaviour
     internal void Update()
     {
 
+
+
         GameObject player = GameObject.Find("Camera2");
 
         playerPosition = player.transform.position;
-
 
 
         // render the chunk that the player is on

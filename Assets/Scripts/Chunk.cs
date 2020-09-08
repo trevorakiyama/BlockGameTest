@@ -42,6 +42,29 @@ public class Chunk
 
     public static ProfilerMarker marker1 = new ProfilerMarker("Const 1");
 
+
+
+    
+
+
+    /** States
+     * Not Initialized
+     * Initializing
+     * Initialized
+     * Mesh needed
+     * Mesh generating
+     * Mesh Generated
+    */
+
+    Boolean initialized = false;
+    Boolean initialization = false;
+    Boolean meshCreated = false;
+    Boolean meshGenerating = false;
+
+    JobHandle initiHandle;
+    JobHandle meshCreateHandle;
+
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Chunk"/> class.
     /// </summary>
@@ -58,6 +81,10 @@ public class Chunk
         meshFilter = chunkObject.AddComponent<MeshFilter>();
         meshRenderer = chunkObject.AddComponent<MeshRenderer>();
 
+        
+        
+        
+
         //meshRenderer.material = world.textureMaterials;
         meshRenderer.material = world.textureMaterials;
 
@@ -66,6 +93,9 @@ public class Chunk
 
         recalculateMesh = true;
     }
+
+
+
 
     /// <summary>
     /// The renderChunk.
@@ -105,19 +135,21 @@ public class Chunk
     /// </summary>
     public void initializeChunkData()
     {
-        marker2.Begin();
-        // Simple 
 
+        if (!dataInitialized)
+        {
 
-        ChunkInitJob job = new ChunkInitJob();
-        job.chunkHeight = chunkHeight;
-        job.chunkWidth = chunkWidth;
-        job.result = blockData;
-        JobHandle handle = job.Schedule();
+            marker2.Begin();
+            ChunkInitJob job = new ChunkInitJob();
+            job.chunkHeight = chunkHeight;
+            job.chunkWidth = chunkWidth;
+            job.result = blockData;
+            JobHandle handle = job.Schedule();
 
-        handle.Complete();
+            handle.Complete();
 
-        marker2.End();
+            marker2.End();
+        }
     }
 
     /// <summary>
@@ -166,6 +198,10 @@ public class Chunk
         JobHandle handle = job.Schedule();
 
         marker3.End();
+
+        
+
+
 
         handle.Complete();
 

@@ -31,12 +31,12 @@ public struct MeshCreateJob : IJob
 
     public int z;
 
-    public int mode;
+    //public int mode;
 
 
     public NativeArray<int> counts;
 
-    internal static Vector2[] _uvs = new Vector2[]
+    readonly internal static Vector2[] _uvs = new Vector2[]
         {
         new Vector2(0, 0),
         new Vector2(0, 1),
@@ -44,7 +44,7 @@ public struct MeshCreateJob : IJob
         new Vector2(1, 0)
         };
 
-    internal static Vector3[] _normals = new Vector3[]
+    readonly internal static Vector3[] _normals = new Vector3[]
     {
         new Vector3(0,1,0), // Top
         new Vector3(0,-1,0),
@@ -55,7 +55,7 @@ public struct MeshCreateJob : IJob
 
     };
 
-    internal static Vector3[] _vertices = new Vector3[]
+    readonly internal static Vector3[] _vertices = new Vector3[]
     {
         new Vector3(0,0,0), // 0
         new Vector3(1,0,0), // 1
@@ -67,25 +67,52 @@ public struct MeshCreateJob : IJob
         new Vector3(1,1,1)  // 7
     };
 
-    internal static int[,] _faceVertices = new int[,]
- {
-        { 2, 6, 7, 3},
-        { 4, 0, 1, 5},
-        { 5, 7, 6, 4},
-        { 0, 2, 3, 1},
-        { 1, 3, 7, 5},
-        { 4, 6, 2, 0}
- };
 
-    internal static int[,] _triangleVertices = new int[,]
+    readonly internal static int[] _faceVertices2 = new int[]
     {
-        { 0, 1, 3, 3, 1, 2 },
-        { 0, 1, 3, 3, 1, 2 },
-        { 0, 1, 3, 3, 1, 2 },
-        { 0, 1, 3, 3, 1, 2 },
-        { 0, 1, 3, 3, 1, 2 },
-        { 0, 1, 3, 3, 1, 2 }
+            2, 6, 7, 3,
+            4, 0, 1, 5,
+            5, 7, 6, 4,
+            0, 2, 3, 1,
+            1, 3, 7, 5,
+            4, 6, 2, 0
     };
+
+
+
+    // Need to use a single d array in a job
+    readonly internal static int[] _triangleVertices2 = new int[]
+    {
+            0, 1, 3, 3, 1, 2 ,
+            0, 1, 3, 3, 1, 2 ,
+            0, 1, 3, 3, 1, 2 ,
+            0, 1, 3, 3, 1, 2 ,
+            0, 1, 3, 3, 1, 2 ,
+            0, 1, 3, 3, 1, 2 
+    };
+
+
+
+
+    //   internal static int[,] _faceVertices = new int[,]
+    //{
+    //       { 2, 6, 7, 3},
+    //       { 4, 0, 1, 5},
+    //       { 5, 7, 6, 4},
+    //       { 0, 2, 3, 1},
+    //       { 1, 3, 7, 5},
+    //       { 4, 6, 2, 0}
+    //};
+
+    //   internal static int[,] _triangleVertices = new int[,]
+    //   {
+    //       { 0, 1, 3, 3, 1, 2 },
+    //       { 0, 1, 3, 3, 1, 2 },
+    //       { 0, 1, 3, 3, 1, 2 },
+    //       { 0, 1, 3, 3, 1, 2 },
+    //       { 0, 1, 3, 3, 1, 2 },
+    //       { 0, 1, 3, 3, 1, 2 }
+    //   };
 
     // TODO: make this come from the block rather than hard coding
     internal static int[] materialIndex = new int[]
@@ -102,7 +129,7 @@ public struct MeshCreateJob : IJob
     /// </summary>
     public void Execute()
     {
-
+        
         //ProfilerMarker markerFull = new ProfilerMarker("Full");
 
 
@@ -130,10 +157,13 @@ public struct MeshCreateJob : IJob
         int triIndex = 0;
 
 
+        
+
         // Convert to managed array for faster read access
-        BlockData[] newBlockData = blockData.ToArray();
+        //BlockData[] newBlockData = blockData.ToArray();
 
-
+        
+        
 
         //markerInit.End();
 
@@ -147,11 +177,12 @@ public struct MeshCreateJob : IJob
         for (int i = 0; i < blockData.Length; i++)
         {
 
+            
+
             //markerInMain.Begin();
 
             //marker1.Begin();
-            if (true || mode == 0)
-            {
+
                 
                 x = x + 1;
                 // convert the straight array to xyz coords  // maybe not necessary
@@ -167,13 +198,12 @@ public struct MeshCreateJob : IJob
                     }
                 }
                 
-
-            }
             //marker1.End();
 
 
+
             //marker2.Begin();
-            BlockData block = newBlockData[i];
+            BlockData block = blockData[i];
             
 
             if (!block.isVisible)
@@ -186,14 +216,22 @@ public struct MeshCreateJob : IJob
 
             //marker3.Begin();
 
+            
+
+
             for (int face = 0; face < 6; face++)
             {
+                
+                
 
                 //marker4.Begin();
 
                 //marker4n.Begin();
 
-
+                //if (face != 2)
+                //{
+                //    continue;
+                //}
                 // 
 
                 Boolean neighborSolid = false;
@@ -243,9 +281,10 @@ public struct MeshCreateJob : IJob
 
                 if (neighborIndex >= 0)
                 {
-                    neighborSolid = newBlockData[neighborIndex].isSolid;
+                    neighborSolid = blockData[neighborIndex].isSolid;
                 }
 
+                
 
                 //marker4n.End();
 
@@ -265,16 +304,23 @@ public struct MeshCreateJob : IJob
                     ChunkMeshVertexData vertsout3 = new ChunkMeshVertexData();
 
 
-                    vertsout0.pos = _vertices[_faceVertices[face, 0]] + new Vector3(x, y, z);
-                    vertsout1.pos = _vertices[_faceVertices[face, 1]] + new Vector3(x, y, z);
-                    vertsout2.pos = _vertices[_faceVertices[face, 2]] + new Vector3(x, y, z);
-                    vertsout3.pos = _vertices[_faceVertices[face, 3]] + new Vector3(x, y, z);
+
+
+                    /* the static vertex data needs to be expanded so the burst compiler can work properly */
+
+
+                    vertsout0.pos = _vertices[_faceVertices2[face*4 + 0]] + new Vector3(x, y, z);
+                    vertsout1.pos = _vertices[_faceVertices2[face*4 + 1]] + new Vector3(x, y, z);
+                    vertsout2.pos = _vertices[_faceVertices2[face*4 + 2]] + new Vector3(x, y, z);
+                    vertsout3.pos = _vertices[_faceVertices2[face*4 + 3]] + new Vector3(x, y, z);
+
+
 
                     vertsout0.normal = _normals[face];
                     vertsout1.normal = _normals[face];
                     vertsout2.normal = _normals[face];
                     vertsout3.normal = _normals[face];
-
+                    
 
                     vertsout0.uv = new Vector2(0, 0);
                     vertsout1.uv = new Vector2(0, 1);
@@ -286,12 +332,12 @@ public struct MeshCreateJob : IJob
                     verts.Add(vertsout2);
                     verts.Add(vertsout3);
 
-                    tris.Add(_triangleVertices[face, 0] + vertIndex);
-                    tris.Add(_triangleVertices[face, 1] + vertIndex);
-                    tris.Add(_triangleVertices[face, 2] + vertIndex);
-                    tris.Add(_triangleVertices[face, 3] + vertIndex);
-                    tris.Add(_triangleVertices[face, 4] + vertIndex);
-                    tris.Add(_triangleVertices[face, 5] + vertIndex);
+                    tris.Add(_triangleVertices2[face*6 + 0] + vertIndex);
+                    tris.Add(_triangleVertices2[face*6 + 1] + vertIndex);
+                    tris.Add(_triangleVertices2[face*6 + 2] + vertIndex);
+                    tris.Add(_triangleVertices2[face*6 + 3] + vertIndex);
+                    tris.Add(_triangleVertices2[face*6 + 4] + vertIndex);
+                    tris.Add(_triangleVertices2[face*6 + 5] + vertIndex);
 
 
                     vertIndex += 4;
@@ -299,16 +345,22 @@ public struct MeshCreateJob : IJob
 
                     
 
-                    
+
 
                 }
                 //marker41.End();
 
                 //marker4.End();
+
+
+
             }
             //marker3.End();
 
             //markerInMain.End();
+
+          
+            
         }
 
         
@@ -320,70 +372,72 @@ public struct MeshCreateJob : IJob
         //markerPreMain.End();
 
         //markerFull.End();
+
     }
 
-    /// <summary>
-    /// The isNeighborSolid.
-    /// </summary>
-    /// <param name="blockData">The blockData<see cref="NativeArray{BlockData}"/>.</param>
-    /// <param name="index">The index<see cref="int"/>.</param>
-    /// <param name="face">The face<see cref="int"/>.</param>
-    /// <returns>The <see cref="Boolean"/>.</returns>
-    private Boolean isNeighborSolid(NativeArray<BlockData> blockData, int index, int face)
-    {
+    ///// <summary>
+    ///// The isNeighborSolid.
+    ///// </summary>
+    ///// <param name="blockData">The blockData<see cref="NativeArray{BlockData}"/>.</param>
+    ///// <param name="index">The index<see cref="int"/>.</param>
+    ///// <param name="face">The face<see cref="int"/>.</param>
+    ///// <returns>The <see cref="Boolean"/>.</returns>
+    //private Boolean isNeighborSolid(NativeArray<BlockData> blockData, int index, int face)
+    //{
 
-        ProfilerMarker marker = new ProfilerMarker("IsNeighbor");
-        marker.Begin();
-        int neighborIndex = -1;
+    //    ProfilerMarker marker = new ProfilerMarker("IsNeighbor");
+    //    marker.Begin();
+    //    int neighborIndex = -1;
 
 
-        switch (face)
-        {
-            case 0:
-                if (y < sizey - 1)
-                {
-                    neighborIndex = index + sizex;
-                }
-                break;
-            case 1:
-                if (y > 0)
-                {
-                    neighborIndex = index - sizex;
-                }
-                break;
-            case 2:
-                if (z < sizez - 1)
-                {
-                    neighborIndex = index + sizex * sizey;
-                }
-                break;
-            case 3:
-                if (z > 0)
-                {
-                    neighborIndex = index - sizex * sizey;
-                }
-                break;
-            case 4:
-                if (x < sizex - 1)
-                {
-                    neighborIndex = index + 1;
-                }
-                break;
-            case 5:
-                if (x > 0)
-                {
-                    neighborIndex = index - 1;
-                }
-                break;
-        }
+    //    switch (face)
+    //    {
+    //        case 0:
+    //            if (y < sizey - 1)
+    //            {
+    //                neighborIndex = index + sizex;
+    //            }
+    //            break;
+    //        case 1:
+    //            if (y > 0)
+    //            {
+    //                neighborIndex = index - sizex;
+    //            }
+    //            break;
+    //        case 2:
+    //            if (z < sizez - 1)
+    //            {
+    //                neighborIndex = index + sizex * sizey;
+    //            }
+    //            break;
+    //        case 3:
+    //            if (z > 0)
+    //            {
+    //                neighborIndex = index - sizex * sizey;
+    //            }
+    //            break;
+    //        case 4:
+    //            if (x < sizex - 1)
+    //            {
+    //                neighborIndex = index + 1;
+    //            }
+    //            break;
+    //        case 5:
+    //            if (x > 0)
+    //            {
+    //                neighborIndex = index - 1;
+    //            }
+    //            break;
+    //    }
 
-        marker.End();
+    //    marker.End();
 
-        if (neighborIndex < 0)
-        {
-            return false;
-        }
+    //    if (neighborIndex < 0)
+    //    {
+    //        return false;
+    //    }
 
-        return blockData[neighborIndex].isSolid;
-    }
+    //    return blockData[neighborIndex].isSolid;
+    //}
+
 }
