@@ -11,7 +11,7 @@ using UnityEngine.Rendering;
 /// </summary>
 public class Chunk
 {
-    internal GameObject chunkObject;
+    public GameObject chunkObject;
 
     internal MeshRenderer meshRenderer;
 
@@ -24,9 +24,9 @@ public class Chunk
     // A chunk will contain:
     // A mesh object for manipulation and rendering
     // an 3d array representing all the block in the chunk
-    public const int chunkWidth = 32;
+    public const int chunkWidth = 16;
 
-    public const int chunkHeight = 256;
+    public const int chunkHeight = 16;
 
     public NativeArray<BlockData> blockData = new NativeArray<BlockData>(chunkWidth * chunkWidth * chunkHeight, Allocator.Persistent);
 
@@ -65,6 +65,7 @@ public class Chunk
     JobHandle meshCreateHandle;
 
 
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Chunk"/> class.
     /// </summary>
@@ -80,10 +81,6 @@ public class Chunk
         chunkObject.name = "This Named Chunk" + pos;
         meshFilter = chunkObject.AddComponent<MeshFilter>();
         meshRenderer = chunkObject.AddComponent<MeshRenderer>();
-
-        
-        
-        
 
         //meshRenderer.material = world.textureMaterials;
         meshRenderer.material = world.textureMaterials;
@@ -106,9 +103,26 @@ public class Chunk
         if (recalculateMesh)
         {
             Mesh mesh = GetMesh();
+            mesh.name = "mymesh";
             meshFilter.mesh = mesh;
 
-            chunkObject.transform.position = offset;
+
+            chunkObject.transform.position = new Vector3(offset.x, 0, offset.z);
+
+
+            //MeshFilter mf = chunkObject.GetComponent<MeshFilter>();
+
+            //Mesh m1 = mf.mesh;
+
+
+
+            //MeshRenderer mr = chunkObject.GetComponent<MeshRenderer>();
+
+
+
+
+            //GameObject worldObject = GameObject.FindGameObjectWithTag("worldb");
+            //StaticBatchingUtility.Combine(new GameObject[] { chunkObject }, worldObject);
 
             recalculateMesh = false;
         }
@@ -197,10 +211,9 @@ public class Chunk
         job.counts = returnCounts;
         JobHandle handle = job.Schedule();
 
-        marker3.End();
 
         
-
+        marker3.End();
 
 
         handle.Complete();
@@ -235,7 +248,7 @@ public class Chunk
         mesh.triangles = trilist;
 
         mesh.RecalculateBounds();
-
+        
 
         meshVertices.Dispose();
         triVerts.Dispose();

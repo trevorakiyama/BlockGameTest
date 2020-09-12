@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.UIElements;
 using UnityEngine;
 
 public class PlayerCamera : MonoBehaviour
@@ -15,7 +14,7 @@ public class PlayerCamera : MonoBehaviour
         //transform.position = new Vector3(0, 60, -5);
 
         //Debug.LogFormat("Pos: {0}", this.transform.position);
-        transform.position = new Vector3(0, 03, 0);
+        transform.position = new Vector3(0, 150, 0);
     }
 
     // Update is called once per frame

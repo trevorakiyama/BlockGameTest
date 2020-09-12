@@ -1,4 +1,7 @@
 ﻿using System.Collections.Generic;
+using System;
+using Unity.Collections;
+using Unity.Jobs;
 using Unity.Profiling;
 using UnityEngine;
 
@@ -67,48 +70,67 @@ public class World : MonoBehaviour
 
 
 
+        // Make the Circle based on the player position, not just the chunk
+        
+        NativeList<Vector3Int> nearChunks = new NativeList<Vector3Int>(0, Allocator.TempJob);
 
-        for (int x = chunkCoord.x-1 ; x <= chunkCoord.x+1; x++)
+        CircularSearchJob job = new CircularSearchJob();
+        job.orderedCoords = nearChunks;
+        job.origin = chunkCoord;
+        job.maxDist = 64;
+        JobHandle handle = job.Schedule();
+
+        handle.Complete();
+
+
+        long timestamp = System.Diagnostics.Stopwatch.GetTimestamp();
+
+
+            for (int i = 0; i < job.orderedCoords.Length; i++)
         {
-            for (int y = 0; y <= 0; y++)
+
+            // check if the chunk is already in Chunkd, if it is not, then generate it, otherwise skip it
+
+            Vector3Int currChunk = job.orderedCoords[i];
+
+            Chunk foundChunk;
+            bool found = chunksd.TryGetValue(currChunk, out foundChunk);
+
+            if (!found)
             {
-                for (int z = chunkCoord.z-1 ; z <= chunkCoord.z+1; z++)
-                {
 
-                    Vector3Int currChunk = new Vector3Int(x, y, z);
+                Debug.LogFormat("Chunk NEW Pos {0} {1}", chunkCoord.ToString(), playerPosition);
+                marker1.Begin();
+                foundChunk = new Chunk(this, currChunk);
+                marker1.End();
 
-                    Chunk foundChunk;
-
-                    bool found = chunksd.TryGetValue(currChunk, out foundChunk);
-
-
-                    if (!found)
-                    {
-
-                        Debug.LogFormat("Chunk Pos {0} {1}", chunkCoord.ToString(), playerPosition);
-                        marker1.Begin();
-                        foundChunk = new Chunk(this, currChunk);
-                        marker1.End();
-
-                        //foundChunk.initializeChunkData();
-                        chunksd.Add(currChunk, foundChunk);
+                //foundChunk.initializeChunkData();
+                chunksd.Add(currChunk, foundChunk);
 
 
 
-                    }
-
-                    marker2.Begin();
-
-                    foundChunk.renderChunk(new Vector3(currChunk.x * Chunk.chunkWidth, currChunk.y * Chunk.chunkHeight, currChunk.z * Chunk.chunkWidth));
-                    //foundChunk.renderChunk(new Vector3(0,0,0));
-                    marker2.End();
 
 
-                }
             }
 
 
+            foundChunk.renderChunk(new Vector3(currChunk.x * Chunk.chunkWidth, currChunk.y * Chunk.chunkHeight, currChunk.z * Chunk.chunkWidth));
+
+            if (System.Diagnostics.Stopwatch.GetTimestamp() - timestamp > 100000)
+            {
+                break;
+            }
+
+
+
         }
+
+
+
+            nearChunks.Dispose();
+
+        
+
     }
 
     /// <summary>

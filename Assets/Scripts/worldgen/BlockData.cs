@@ -8,7 +8,7 @@ public struct BlockData
 
     public Boolean isSolid;
     public Boolean isVisible;
-    public Vector3Int myPosWorld;
-    public Vector3Int myPosChunk;
+    //public Vector3Int myPosWorld;
+    //public Vector3Int myPosChunk;
 
 }
