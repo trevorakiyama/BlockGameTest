@@ -4,6 +4,7 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Profiling;
 using UnityEngine;
+using Unity.Mathematics;
 
 /// <summary>
 /// Defines the <see cref="World" />.
@@ -24,6 +25,11 @@ public class World : MonoBehaviour
 
     internal Vector3 playerPosition;
 
+
+    public ChunkManager chunkManager;
+
+
+
     // Start is called before the first frame update
     /// <summary>
     /// The Start.
@@ -33,12 +39,15 @@ public class World : MonoBehaviour
 
         instance = this;
 
-
-        Chunk newChunk = new Chunk(this, new Vector3Int(0, 0, 0));
-        newChunk.initializeChunkData();
+        chunkManager = new ChunkManager(this);
 
 
-        chunksd.Add(new Vector3Int(0, 0, 0), newChunk);
+
+        //Chunk newChunk = new Chunk(this, new Vector3Int(0, 0, 0), chunkManager);
+        //newChunk.initializeChunkData();
+
+
+        //chunksd.Add(new Vector3Int(0, 0, 0), newChunk);
     }
 
     internal ProfilerMarker marker1 = new ProfilerMarker("Update 1");
@@ -51,6 +60,11 @@ public class World : MonoBehaviour
     /// </summary>
     internal void Update()
     {
+
+
+        // TODO:  Make a real call through
+        chunkManager.checkUpdates();
+
 
 
 
@@ -69,10 +83,20 @@ public class World : MonoBehaviour
         Vector3Int chunkCoord = getChunkCoord(playerPosition);
 
 
+        chunkManager.ProcessChunksMeshes(new int3(chunkCoord.x, chunkCoord.y, chunkCoord.z));
+
+
+        /*
 
         // Make the Circle based on the player position, not just the chunk
+
+        NativeList <Vector3Int> nearChunks = new NativeList<Vector3Int>(0, Allocator.TempJob);
+
+
         
-        NativeList<Vector3Int> nearChunks = new NativeList<Vector3Int>(0, Allocator.TempJob);
+
+
+
 
         CircularSearchJob job = new CircularSearchJob();
         job.orderedCoords = nearChunks;
@@ -101,7 +125,7 @@ public class World : MonoBehaviour
 
                 Debug.LogFormat("Chunk NEW Pos {0} {1}", chunkCoord.ToString(), playerPosition);
                 marker1.Begin();
-                foundChunk = new Chunk(this, currChunk);
+                foundChunk = new Chunk(this, currChunk, chunkManager);
                 marker1.End();
 
                 //foundChunk.initializeChunkData();
@@ -128,7 +152,7 @@ public class World : MonoBehaviour
 
 
             nearChunks.Dispose();
-
+        */
         
 
     }
@@ -176,5 +200,7 @@ public class World : MonoBehaviour
             chunk.cleanup();
 
         }
+
+        chunkManager.Dispose();
     }
 }

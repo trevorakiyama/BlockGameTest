@@ -28,7 +28,7 @@ public class Chunk
 
     public const int chunkHeight = 16;
 
-    public NativeArray<BlockData> blockData = new NativeArray<BlockData>(chunkWidth * chunkWidth * chunkHeight, Allocator.Persistent);
+    //public NativeArray<BlockData> blockData = new NativeArray<BlockData>(chunkWidth * chunkWidth * chunkHeight, Allocator.Persistent);
 
     internal Boolean dataInitialized = false;
 
@@ -42,9 +42,7 @@ public class Chunk
 
     public static ProfilerMarker marker1 = new ProfilerMarker("Const 1");
 
-
-
-    
+    public ChunkManager chunkManager;
 
 
     /** States
@@ -71,8 +69,11 @@ public class Chunk
     /// </summary>
     /// <param name="world">The world<see cref="World"/>.</param>
     /// <param name="pos">The pos<see cref="Vector3Int"/>.</param>
-    public Chunk(World world, Vector3Int pos)
+    public Chunk(World world, Vector3Int pos, ChunkManager chunkManager)
     {
+
+        this.chunkManager = chunkManager;
+
 
         marker1.Begin();
         this.world = world;
@@ -89,11 +90,14 @@ public class Chunk
 
 
         recalculateMesh = true;
+
+
+
     }
 
 
 
-
+    /*
     /// <summary>
     /// The renderChunk.
     /// </summary>
@@ -109,24 +113,13 @@ public class Chunk
 
             chunkObject.transform.position = new Vector3(offset.x, 0, offset.z);
 
-
-            //MeshFilter mf = chunkObject.GetComponent<MeshFilter>();
-
-            //Mesh m1 = mf.mesh;
-
-
-
-            //MeshRenderer mr = chunkObject.GetComponent<MeshRenderer>();
-
-
-
-
-            //GameObject worldObject = GameObject.FindGameObjectWithTag("worldb");
-            //StaticBatchingUtility.Combine(new GameObject[] { chunkObject }, worldObject);
-
             recalculateMesh = false;
         }
     }
+    */
+
+
+    /*
 
     /// <summary>
     /// The GetMesh.
@@ -144,6 +137,9 @@ public class Chunk
         return BuildMesh();
     }
 
+    */
+
+
     /// <summary>
     /// The initializeChunkData.
     /// </summary>
@@ -153,30 +149,56 @@ public class Chunk
         if (!dataInitialized)
         {
 
-            marker2.Begin();
-            ChunkInitJob job = new ChunkInitJob();
-            job.chunkHeight = chunkHeight;
-            job.chunkWidth = chunkWidth;
-            job.result = blockData;
-            JobHandle handle = job.Schedule();
 
-            handle.Complete();
 
-            marker2.End();
+
+            //ChunkBlockData[] chunkBlockData;
+            //ChunkLoader.LoadChunk(new Unity.Mathematics.int3(pos.x, pos.y, pos.z), new Unity.Mathematics.uint3((uint)chunkWidth, (uint)chunkHeight, (uint)chunkWidth), out chunkBlockData);
+
+            //for (int i = 0; i < chunkBlockData.Length; i++ )
+            //{
+            //    BlockData newData = new BlockData
+            //    {
+            //        isSolid = chunkBlockData[i].isSolid,
+            //        isVisible = chunkBlockData[i].isVisible
+            //    };
+
+            //    blockData[i] = newData;
+            //}
+
+
+            chunkManager.LoadChunks();
+
+
+
+            //marker2.Begin();
+            //ChunkInitJob job = new ChunkInitJob();
+            //job.chunkHeight = chunkHeight;
+            //job.chunkWidth = chunkWidth;
+            //job.result = blockData;
+            //JobHandle handle = job.Schedule();
+
+            //handle.Complete();
+
+            //marker2.End();
         }
     }
+
+
+
+    /*
 
     /// <summary>
     /// The getBlockData.
     /// </summary>
     /// <param name="blockCoord">The blockCoord<see cref="Vector3Int"/>.</param>
     /// <returns>The <see cref="BlockData"/>.</returns>
-    private BlockData getBlockData(Vector3Int blockCoord)
-    {
-        int index = blockCoord.x + blockCoord.x * blockCoord.y + blockCoord.x * blockCoord.y * blockCoord.z;
+    //private BlockData getBlockData(Vector3Int blockCoord)
+    //{
+    //    int index = blockCoord.x + blockCoord.x * blockCoord.y + blockCoord.x * blockCoord.y * blockCoord.z;
 
-        return blockData[index];
-    }
+    //    return blockData[index];
+    //}
 
     /// <summary>
     /// The BuildMesh.
@@ -194,13 +216,13 @@ public class Chunk
         NativeArray<int> returnCounts = new NativeArray<int>(2, Allocator.TempJob);
 
 
-
-
         NativeList<ChunkMeshVertexData> meshVertices = new NativeList<ChunkMeshVertexData>(0, Allocator.TempJob);
         NativeList<int> triVerts = new NativeList<int>(0, Allocator.TempJob);
 
+        NativeArray<ChunkBlockData> blockData = new NativeArray<ChunkBlockData>(chunkWidth * chunkHeight * chunkWidth, Allocator.TempJob);
+        chunkManager.getChunkBlockData(new Unity.Mathematics.int3(pos.x, pos.y, pos.z), ref blockData);
 
-
+        // TODO: Investigate mesh generation compution in parallel
         MeshCreateJob job = new MeshCreateJob();
         job.blockData = blockData;
         job.verts = meshVertices;
@@ -212,16 +234,16 @@ public class Chunk
         JobHandle handle = job.Schedule();
 
 
-        
         marker3.End();
+
 
 
         handle.Complete();
 
-
         int vertCount = job.counts[0];
         int triCount = job.counts[1];
         returnCounts.Dispose();
+        blockData.Dispose();
 
 
         Mesh mesh = new Mesh();
@@ -259,57 +281,60 @@ public class Chunk
         return mesh;
     }
 
-    /// <summary>
-    /// The getChunkRelativeCoord.
-    /// </summary>
-    /// <param name="worldCoord">The worldCoord<see cref="Vector3Int"/>.</param>
-    /// <returns>The <see cref="Vector3Int"/>.</returns>
-    public static Vector3Int getChunkRelativeCoord(Vector3Int worldCoord)
-    {
-        Vector3Int offset = new Vector3Int(worldCoord.x % chunkWidth, worldCoord.y % chunkHeight, worldCoord.z % chunkWidth);
+    ///// <summary>
+    ///// The getChunkRelativeCoord.
+    ///// </summary>
+    ///// <param name="worldCoord">The worldCoord<see cref="Vector3Int"/>.</param>
+    ///// <returns>The <see cref="Vector3Int"/>.</returns>
+    //public static Vector3Int getChunkRelativeCoord(Vector3Int worldCoord)
+    //{
+    //    Vector3Int offset = new Vector3Int(worldCoord.x % chunkWidth, worldCoord.y % chunkHeight, worldCoord.z % chunkWidth);
 
-        if (offset.x < 0)
-        {
-            offset.x += chunkWidth;
-        }
-        if (offset.y < 0)
-        {
-            offset.y += chunkHeight;
-        }
-        if (offset.z < 0)
-        {
-            offset.z += chunkWidth;
-        }
-
-
-        return offset;
-    }
-
-    /// <summary>
-    /// The getChunkCoord.
-    /// </summary>
-    /// <param name="worldCoord">The worldCoord<see cref="Vector3Int"/>.</param>
-    /// <returns>The <see cref="Vector3Int"/>.</returns>
-    public static Vector3Int getChunkCoord(Vector3Int worldCoord)
-    {
+    //    if (offset.x < 0)
+    //    {
+    //        offset.x += chunkWidth;
+    //    }
+    //    if (offset.y < 0)
+    //    {
+    //        offset.y += chunkHeight;
+    //    }
+    //    if (offset.z < 0)
+    //    {
+    //        offset.z += chunkWidth;
+    //    }
 
 
-        Vector3Int chunkCoord = new Vector3Int(worldCoord.x / chunkWidth, worldCoord.y / chunkHeight, worldCoord.z / chunkWidth);
-        if (worldCoord.x < 0)
-        {
-            chunkCoord.x -= 1;
-        }
-        if (worldCoord.y < 0)
-        {
-            chunkCoord.y -= 1;
-        }
-        if (worldCoord.z < 0)
-        {
-            chunkCoord.z -= 1;
-        }
+    //    return offset;
+    //}
 
-        return chunkCoord;
-    }
+
+    */
+
+    ///// <summary>
+    ///// The getChunkCoord.
+    ///// </summary>
+    ///// <param name="worldCoord">The worldCoord<see cref="Vector3Int"/>.</param>
+    ///// <returns>The <see cref="Vector3Int"/>.</returns>
+    //public static Vector3Int getChunkCoord(Vector3Int worldCoord)
+    //{
+
+
+    //    Vector3Int chunkCoord = new Vector3Int(worldCoord.x / chunkWidth, worldCoord.y / chunkHeight, worldCoord.z / chunkWidth);
+    //    if (worldCoord.x < 0)
+    //    {
+    //        chunkCoord.x -= 1;
+    //    }
+    //    if (worldCoord.y < 0)
+    //    {
+    //        chunkCoord.y -= 1;
+    //    }
+    //    if (worldCoord.z < 0)
+    //    {
+    //        chunkCoord.z -= 1;
+    //    }
+
+    //    return chunkCoord;
+    //}
 
     /// <summary>
     /// The cleanup.
@@ -317,10 +342,12 @@ public class Chunk
     public void cleanup()
     {
 
-        if (blockData.IsCreated)
-        {
+        //if (blockData.IsCreated)
+        //{
 
-        }
-        blockData.Dispose();
+        //}
+        //blockData.Dispose();
+
     }
+
 }

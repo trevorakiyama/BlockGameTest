@@ -18,6 +18,8 @@ public struct ChunkInitJob : IJob
     // currently no input
 
 
+    // Chunk Loading should be a task on a separate Thread
+    // Jobs aren't compatible
     void IJob.Execute()
     {
 

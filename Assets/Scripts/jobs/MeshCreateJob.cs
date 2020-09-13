@@ -11,7 +11,7 @@ using UnityEngine;
 [BurstCompile]
 public struct MeshCreateJob : IJob
 {
-    public NativeArray<BlockData> blockData;
+    public NativeArray<ChunkBlockData> blockData;
 
     public NativeList<ChunkMeshVertexData> verts;
     public NativeList<int> tris;
@@ -203,7 +203,7 @@ public struct MeshCreateJob : IJob
 
 
             //marker2.Begin();
-            BlockData block = blockData[i];
+            ChunkBlockData block = blockData[i];
             
 
             if (!block.isVisible)
