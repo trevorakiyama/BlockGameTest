@@ -40,14 +40,6 @@ public class World : MonoBehaviour
         instance = this;
 
         chunkManager = new ChunkManager(this);
-
-
-
-        //Chunk newChunk = new Chunk(this, new Vector3Int(0, 0, 0), chunkManager);
-        //newChunk.initializeChunkData();
-
-
-        //chunksd.Add(new Vector3Int(0, 0, 0), newChunk);
     }
 
     internal ProfilerMarker marker1 = new ProfilerMarker("Update 1");
@@ -61,6 +53,7 @@ public class World : MonoBehaviour
     internal void Update()
     {
 
+        
 
         // TODO:  Make a real call through
         chunkManager.checkUpdates();
@@ -72,89 +65,13 @@ public class World : MonoBehaviour
 
         playerPosition = player.transform.position;
 
-
-        // render the chunk that the player is on
-
-        // get coordinates of chunk that player is in
-        // initialize Chunk so it can render
-
-
-
         Vector3Int chunkCoord = getChunkCoord(playerPosition);
 
+        marker1.Begin();
 
         chunkManager.ProcessChunksMeshes(new int3(chunkCoord.x, chunkCoord.y, chunkCoord.z));
 
-
-        /*
-
-        // Make the Circle based on the player position, not just the chunk
-
-        NativeList <Vector3Int> nearChunks = new NativeList<Vector3Int>(0, Allocator.TempJob);
-
-
-        
-
-
-
-
-        CircularSearchJob job = new CircularSearchJob();
-        job.orderedCoords = nearChunks;
-        job.origin = chunkCoord;
-        job.maxDist = 64;
-        JobHandle handle = job.Schedule();
-
-        handle.Complete();
-
-
-        long timestamp = System.Diagnostics.Stopwatch.GetTimestamp();
-
-
-            for (int i = 0; i < job.orderedCoords.Length; i++)
-        {
-
-            // check if the chunk is already in Chunkd, if it is not, then generate it, otherwise skip it
-
-            Vector3Int currChunk = job.orderedCoords[i];
-
-            Chunk foundChunk;
-            bool found = chunksd.TryGetValue(currChunk, out foundChunk);
-
-            if (!found)
-            {
-
-                Debug.LogFormat("Chunk NEW Pos {0} {1}", chunkCoord.ToString(), playerPosition);
-                marker1.Begin();
-                foundChunk = new Chunk(this, currChunk, chunkManager);
-                marker1.End();
-
-                //foundChunk.initializeChunkData();
-                chunksd.Add(currChunk, foundChunk);
-
-
-
-
-
-            }
-
-
-            foundChunk.renderChunk(new Vector3(currChunk.x * Chunk.chunkWidth, currChunk.y * Chunk.chunkHeight, currChunk.z * Chunk.chunkWidth));
-
-            if (System.Diagnostics.Stopwatch.GetTimestamp() - timestamp > 100000)
-            {
-                break;
-            }
-
-
-
-        }
-
-
-
-            nearChunks.Dispose();
-        */
-        
-
+        marker1.End();
     }
 
     /// <summary>
@@ -172,10 +89,15 @@ public class World : MonoBehaviour
             posInt.x -= Chunk.chunkWidth;
         }
 
-        if (posInt.y < 0)
-        {
-            posInt.y -= Chunk.chunkHeight;
-        }
+        //if (posInt.y < 0)
+        //{
+        //    posInt.y -= Chunk.chunkHeight;
+        //}
+
+        // for now just use y = 0 always;
+        posInt.y = 0;
+
+
 
         if (posInt.z < 0)
         {
@@ -197,10 +119,24 @@ public class World : MonoBehaviour
         foreach (Chunk chunk in chunksd.Values)
         {
 
-            chunk.cleanup();
+            Destroy(chunk.
+                chunkObject);
 
         }
 
         chunkManager.Dispose();
     }
+
+    public void DestroyObject(GameObject obj)
+    {
+
+        //DestroyObject(obj);
+        
+        obj.SetActive(false);
+        
+        Destroy(obj);
+
+    }
+
+
 }

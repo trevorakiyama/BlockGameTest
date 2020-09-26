@@ -7,6 +7,8 @@ using Unity.Jobs;
 using Unity.Entities;
 using Unity.Rendering;
 using UnityEngine.Rendering;
+using UnityEngine;
+using Unity.Profiling;
 
 
 // Handles The Chunk Logic
@@ -22,9 +24,15 @@ public class ChunkManager {
     NativeHashMap<int3, ChunkData> chunkData;
 
 
-    internal Dictionary<Vector3Int, Chunk> tempChunks = new Dictionary<Vector3Int, Chunk>();
+    internal Dictionary<int3, Chunk> tempChunks = new Dictionary<int3, Chunk>();
 
     public int dummyValue;
+
+
+    ProfilerMarker m1 = new ProfilerMarker("m1");
+    ProfilerMarker m2 = new ProfilerMarker("m2");
+    ProfilerMarker m3 = new ProfilerMarker("m3");
+    ProfilerMarker m4 = new ProfilerMarker("m4");
 
 
     public ChunkManager(World myWorld)
@@ -46,7 +54,8 @@ public class ChunkManager {
     {
         blockTypeData.Dispose();
         chunkData.Dispose();
-        //chunkBlockData.Dispose();
+
+        
     }
     
 
@@ -54,10 +63,7 @@ public class ChunkManager {
 
     public void checkUpdates()
     {
-        //ChunkBlockData[] managedChunkData;
-        //ChunkLoader.LoadChunk(new int3(0, 0,0), new uint3(16, 16, 16), out managedChunkData);
 
-        //dummyValue += 1;
     }
 
 
@@ -81,20 +87,27 @@ public class ChunkManager {
         return true;
     }
 
+
+    int lastChunksToKeep = 0;
+
+
     internal void ProcessChunksMeshes(int3 chunkPos)
     {
 
 
+        int maxDist = 64;
+
         // Make the Circle based on the player position, not just the chunk
 
-        NativeList<Vector3Int> nearChunks = new NativeList<Vector3Int>(0, Allocator.TempJob);
+        NativeList<int3> nearChunks = new NativeList<int3>(0, Allocator.TempJob);
 
-        Vector3Int chunkCoord = new Vector3Int(chunkPos.x, chunkPos.y, chunkPos.z);
+
+        int3 chunkCoord = new int3(chunkPos.x, chunkPos.y, chunkPos.z);
 
         CircularSearchJob job = new CircularSearchJob();
         job.orderedCoords = nearChunks;
         job.origin = chunkCoord;
-        job.maxDist = 64;
+        job.maxDist = maxDist;
         var handle = job.Schedule();
 
         handle.Complete();
@@ -103,10 +116,12 @@ public class ChunkManager {
         long timestamp = System.Diagnostics.Stopwatch.GetTimestamp();
 
 
+        Debug.Log($"nearcount = {nearChunks.Length}");
+
+
         for (int i = 0; i < job.orderedCoords.Length; i++)
         {
-            Vector3Int vcoord = job.orderedCoords[i];
-
+            int3 vcoord = job.orderedCoords[i];
 
 
             Chunk foundChunk;
@@ -118,67 +133,254 @@ public class ChunkManager {
 
                 int3 coord = new int3(vcoord.x, vcoord.y, vcoord.z);
 
-                NativeArray<ChunkBlockData> singleChunkBlockData = new NativeArray<ChunkBlockData>(Chunk.chunkWidth * Chunk.chunkHeight * Chunk.chunkWidth, Allocator.TempJob);
-                getChunkBlockData(coord, ref singleChunkBlockData);
 
-                foundChunk = new Chunk(myWorld, vcoord, this);
-                tempChunks.Add(vcoord, foundChunk);
+                // TODO:  need a better way to deal with this because it get's disposed automatically
+               
+                
 
 
-                generateMeshForChunk(coord, singleChunkBlockData, foundChunk.meshFilter, foundChunk.chunkObject.transform);
+                if (System.Diagnostics.Stopwatch.GetTimestamp() - timestamp < 200000l)
+                {
+                    NativeArray<ChunkBlockData> singleChunkBlockData = new NativeArray<ChunkBlockData>(Chunk.chunkWidth * Chunk.chunkHeight * Chunk.chunkWidth, Allocator.TempJob);
+                    getChunkBlockData(coord, ref singleChunkBlockData);
+                    foundChunk = new Chunk(myWorld, vcoord, this);
+                    tempChunks.Add(coord, foundChunk);
+                    m1.Begin();
+                    generateMeshForChunk(coord, singleChunkBlockData, foundChunk.meshFilter, foundChunk.chunkObject.transform);
+                    m1.End();
+                    //break;
+                }
 
-                //singleChunkBlockData.Dispose();
+                //generateMeshForChunk(coord, singleChunkBlockData, foundChunk.meshFilter, foundChunk.chunkObject.transform);
 
             }
 
-
-            //foundChunk.renderChunk(new Vector3(currChunk.x * Chunk.chunkWidth, currChunk.y * Chunk.chunkHeight, currChunk.z * Chunk.chunkWidth));
-
-            if (System.Diagnostics.Stopwatch.GetTimestamp() - timestamp > 200000l)
-            {
-                break;
-            }
-
-
-
-
-            //// check if the chunk is already in Chunkd, if it is not, then generate it, otherwise skip it
-
-            //Vector3Int currChunk = job.orderedCoords[i];
-
-            //Chunk foundChunk;
-            //bool found = chunksd.TryGetValue(currChunk, out foundChunk);
-
-            //if (!found)
-            //{
-
-            //    Debug.LogFormat("Chunk NEW Pos {0} {1}", chunkCoord.ToString(), playerPosition);
-
-            //    foundChunk = new Chunk(this, currChunk, chunkManager);
-
-            //    //foundChunk.initializeChunkData();
-            //    chunksd.Add(currChunk, foundChunk);
-
-            //}
-
-
-            //foundChunk.renderChunk(new Vector3(currChunk.x * Chunk.chunkWidth, currChunk.y * Chunk.chunkHeight, currChunk.z * Chunk.chunkWidth));
-
-            //if (System.Diagnostics.Stopwatch.GetTimestamp() - timestamp > 100000)
+            //if (System.Diagnostics.Stopwatch.GetTimestamp() - timestamp > 200000l)
             //{
             //    break;
             //}
+        }
 
 
+        // dispose of all chunks that are not in th local range
+        // Should probably sort these as well
+
+        m2.Begin();
+
+        //// THIS IS BRUTALLY SLOW AND TAKING ALL THE TIME
+        ///THOUGHTS: Loop through once and mereley check against distance from player
+        ///Also turn off the mesh generation unless needed
+
+
+
+        // Convert the Map of chunks to a list
+
+        List<Chunk> allChunks = new List<Chunk>();
+        foreach(var kvp in tempChunks)
+        {
+            allChunks.Add(kvp.Value);
+        }
+
+        var filteredChunks = FilterChunksFurtherThan(maxDist, chunkCoord, allChunks);
+
+        foreach (Chunk chunk in filteredChunks)
+        {
+
+            //kvp.Value.chunkObject.transform.position = new float3(10000, 0, 0);
+            //kvp.Value.meshFilter.mesh.Clear();
+
+            disposeChunk(chunk);
+            tempChunks.Remove(chunk.pos);
+        }
+
+
+
+        // oldRemoveOld(job.orderedCoords);
+
+
+        /*
+
+        List<KeyValuePair<int3, Chunk>> chunksToRemove = new List<KeyValuePair<int3, Chunk>>();
+
+        int j = 0;
+        int k = 0;
+        foreach ( KeyValuePair<int3, Chunk> kvp in tempChunks)
+        {
+
+            // todo this needs to be fixed becausae it seems to wipe out all the keys
+            
+            Boolean found = false;
+
+            for (int i = 0; i < job.orderedCoords.Length; i++)
+            {
+                if (job.orderedCoords[i].Equals( kvp.Key))
+                {
+
+                    k++;
+                    found = true;
+                    break;
+                };
+            }
+
+            if (!found)
+            {
+                chunksToRemove.Add(kvp);
+            }
 
         }
 
 
 
+        m2.End();
+        m3.Begin();
+        Debug.Log($"Chunks to remove {chunksToRemove.Count}");
+        Debug.Log($"Chunks to keep {k}");
+
+        if (lastChunksToKeep == chunksToRemove.Count)
+        {
+            Debug.Log($"removeall");
+
+        }
+
+
+
+        lastChunksToKeep = k;
+
+        m3.End();
+        m4.Begin();
+
+        foreach (KeyValuePair<int3, Chunk> kvp in chunksToRemove)
+        {
+
+            //kvp.Value.chunkObject.transform.position = new float3(10000, 0, 0);
+            //kvp.Value.meshFilter.mesh.Clear();
+
+            disposeChunk(kvp.Value);
+            tempChunks.Remove(kvp.Key);
+        }
+
+        */
+
         nearChunks.Dispose();
+
+        m4.End();
     }
 
 
+    protected void oldRemoveOld(NativeList<int3> nearChunkCoords)
+    {
+        List<KeyValuePair<int3, Chunk>> chunksToRemove = new List<KeyValuePair<int3, Chunk>>();
+
+        int j = 0;
+        int k = 0;
+        foreach (KeyValuePair<int3, Chunk> kvp in tempChunks)
+        {
+
+            // todo this needs to be fixed becausae it seems to wipe out all the keys
+
+            Boolean found = false;
+
+            for (int i = 0; i < nearChunkCoords.Length; i++)
+            {
+                if (nearChunkCoords[i].Equals(kvp.Key))
+                {
+
+                    k++;
+                    found = true;
+                    break;
+                };
+            }
+
+            if (!found)
+            {
+                chunksToRemove.Add(kvp);
+            }
+
+        }
+
+
+
+        m2.End();
+        m3.Begin();
+        Debug.Log($"Chunks to remove {chunksToRemove.Count}");
+        Debug.Log($"Chunks to keep {k}");
+
+        if (lastChunksToKeep == chunksToRemove.Count)
+        {
+            Debug.Log($"removeall");
+
+        }
+
+
+
+        lastChunksToKeep = k;
+
+        m3.End();
+        m4.Begin();
+
+        foreach (KeyValuePair<int3, Chunk> kvp in chunksToRemove)
+        {
+
+            //kvp.Value.chunkObject.transform.position = new float3(10000, 0, 0);
+            //kvp.Value.meshFilter.mesh.Clear();
+
+            disposeChunk(kvp.Value);
+            tempChunks.Remove(kvp.Key);
+        }
+
+
+    }
+
+
+
+
+
+
+    protected List<Chunk> FilterChunksFurtherThan(int maxDist, int3 origin, List<Chunk> chunks)
+    {
+
+
+        List<Chunk> filteredChunks = new List<Chunk>();
+
+
+        foreach (Chunk chunk in chunks)
+        {
+            long maxDistSquare =
+                maxDist * maxDist;
+
+            int3 pos = chunk.pos;
+            
+            long distSquare =
+                (origin.x - chunk.pos.x) * (origin.x - chunk.pos.x)
+                + (origin.y - chunk.pos.y) * (origin.y - chunk.pos.y)
+                + (origin.z - chunk.pos.z) * (origin.z - chunk.pos.z);
+
+
+            
+            if (maxDistSquare < distSquare)
+            {
+                filteredChunks.Add(chunk);
+            }
+
+        }
+
+        return filteredChunks;
+    }
+
+
+
+
+
+
+
+    private void disposeChunk(Chunk chunk)
+    {
+
+        myWorld.DestroyObject(chunk.chunkObject);
+
+
+
+    }
 
     void generateMeshForChunk(int3 chunkCoord, NativeArray<ChunkBlockData> blockData, MeshFilter meshFilter, Transform transform)
     {
@@ -186,12 +388,13 @@ public class ChunkManager {
 
         NativeArray<int> returnCounts = new NativeArray<int>(2, Allocator.TempJob);
 
-
-        NativeList<ChunkMeshVertexData> meshVertices = new NativeList<ChunkMeshVertexData>(0, Allocator.TempJob);
-        NativeList<int> triVerts = new NativeList<int>(0, Allocator.TempJob);
+        NativeList<ChunkMeshVertexData> meshVertices = new NativeList<ChunkMeshVertexData>(8196, Allocator.TempJob);
+        NativeList<int> triVerts = new NativeList<int>(8196, Allocator.TempJob);
 
         //NativeArray<ChunkBlockData> lblockData = new NativeArray<ChunkBlockData>(Chunk.chunkWidth * Chunk.chunkHeight * Chunk.chunkWidth, Allocator.TempJob);
 
+
+        m3.Begin();
 
         // TODO: Investigate mesh generation compution in parallel
         MeshCreateJob job = new MeshCreateJob();
@@ -206,6 +409,9 @@ public class ChunkManager {
 
 
         handle.Complete();
+
+        m3.End();
+
 
         int vertCount = job.counts[0];
         int triCount = job.counts[1];
@@ -245,28 +451,6 @@ public class ChunkManager {
 
         meshFilter.mesh = mesh;
         transform.position = new Vector3(Chunk.chunkWidth * chunkCoord.x, 0, Chunk.chunkWidth * chunkCoord.z);
-    }
-
-
-
-
-    public void buildMeshes()
-    {
-
-    }
-
-    public void buildChunkData()
-    {
-
-
-        // get all the chunks that need meshes rebuilt
-
-
-        // Loop through them all and generate mesh data
-
-        // rebuild the meshes
-
-
     }
 
 }

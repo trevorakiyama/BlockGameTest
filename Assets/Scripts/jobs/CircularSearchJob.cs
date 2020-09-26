@@ -4,15 +4,17 @@ using System.Collections.Generic;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEngine;
 
 [BurstCompile]
 public struct CircularSearchJob : IJob
 {
 
-    public NativeList<Vector3Int> orderedCoords;
+    public NativeList<int3> orderedCoords;
 
-    public Vector3Int origin;
+
+    public int3 origin;
     public int maxDist;
 
 
@@ -28,7 +30,7 @@ public struct CircularSearchJob : IJob
 
                 if (x *x +  z * z <= maxDist2)
                 {
-                    orderedCoords.Add(new Vector3Int(x , 0, z));
+                    orderedCoords.Add(new int3(x , 0, z));
 
                 }
 
@@ -38,12 +40,12 @@ public struct CircularSearchJob : IJob
 
         
         // TODO: Could chain the sorting and readjustment as another job but do that later if there's a problem
-        orderedCoords.Sort<Vector3Int, VecCompare>(new VecCompare());
+        orderedCoords.Sort<int3, VecCompare>(new VecCompare());
 
 
         for (int i = 0; i < orderedCoords.Length; i++)
         {
-            Vector3Int coord = orderedCoords[i] + origin;
+            int3 coord = orderedCoords[i] + origin;
             orderedCoords[i] = coord;
 
         }
@@ -51,14 +53,14 @@ public struct CircularSearchJob : IJob
     }
 }
 
-public readonly struct VecCompare : IComparer<Vector3Int>
+public readonly struct VecCompare : IComparer<int3>
 {
-    public int Compare(Vector3Int v1, Vector3Int v2)
+    public int Compare(int3 v1, int3 v2)
     {
 
-        int v1mag = v1.sqrMagnitude;
-        int v2mag = v2.sqrMagnitude;
-        
+        int v1mag = v1.x * v1.x + v1.y * v1.y + v1.z * v1.z;
+        int v2mag = v2.x * v2.x + v2.y * v2.y + v2.z * v2.z;
+
         if (v1mag < v2mag)
         {
             return -1;
