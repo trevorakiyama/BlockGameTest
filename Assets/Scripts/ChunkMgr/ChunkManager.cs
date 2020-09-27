@@ -9,6 +9,7 @@ using Unity.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine;
 using Unity.Profiling;
+using Unity.Collections.LowLevel.Unsafe;
 
 
 // Handles The Chunk Logic
@@ -24,15 +25,21 @@ public class ChunkManager {
     NativeHashMap<int3, ChunkData> chunkData;
 
 
+    NativeArray<ChunkMeshVertexData> _verts;
+    NativeArray<int> _tris;
+
+
+
+
     internal Dictionary<int3, Chunk> tempChunks = new Dictionary<int3, Chunk>();
 
     public int dummyValue;
 
 
     ProfilerMarker m1 = new ProfilerMarker("m1");
-    ProfilerMarker m2 = new ProfilerMarker("m2");
+    //ProfilerMarker m2 = new ProfilerMarker("m2");
     ProfilerMarker m3 = new ProfilerMarker("m3");
-    ProfilerMarker m4 = new ProfilerMarker("m4");
+    //ProfilerMarker m4 = new ProfilerMarker("m4");
 
 
     public ChunkManager(World myWorld)
@@ -46,6 +53,15 @@ public class ChunkManager {
         blockTypeData = new NativeArray<BlockTypeData>(1, Allocator.Persistent);
         chunkData = new NativeHashMap<int3, ChunkData>(1024, Allocator.Persistent);
 
+
+        int3 chunkSize = new int3(Chunk.chunkWidth, Chunk.chunkHeight, Chunk.chunkWidth);
+
+        _verts = new NativeArray<ChunkMeshVertexData>(chunkSize.x * chunkSize.y * chunkSize.z * 24, Allocator.Persistent);
+        _tris = new NativeArray<int>(chunkSize.x * chunkSize.y * chunkSize.z * 36, Allocator.Persistent);
+
+
+
+
         dummyValue = 1;
     }
         
@@ -54,6 +70,8 @@ public class ChunkManager {
     {
         blockTypeData.Dispose();
         chunkData.Dispose();
+        _verts.Dispose();
+        _tris.Dispose();
 
         
     }
@@ -94,6 +112,8 @@ public class ChunkManager {
     internal void ProcessChunksMeshes(int3 chunkPos)
     {
 
+
+        int3 chunkSize = new int3(Chunk.chunkWidth, Chunk.chunkHeight, Chunk.chunkHeight);
 
         int maxDist = 64;
 
@@ -146,8 +166,17 @@ public class ChunkManager {
                     foundChunk = new Chunk(myWorld, vcoord, this);
                     tempChunks.Add(coord, foundChunk);
                     m1.Begin();
-                    generateMeshForChunk(coord, singleChunkBlockData, foundChunk.meshFilter, foundChunk.chunkObject.transform);
+
+
+
+                    //generateMeshForChunk(coord, singleChunkBlockData, foundChunk.meshFilter, foundChunk.chunkObject.transform);
+                    generateMeshesForChunks(chunkSize, coord, singleChunkBlockData, foundChunk.meshFilter, foundChunk.chunkObject.transform);
+
+
                     m1.End();
+
+                    singleChunkBlockData.Dispose();
+
                     //break;
                 }
 
@@ -165,7 +194,7 @@ public class ChunkManager {
         // dispose of all chunks that are not in th local range
         // Should probably sort these as well
 
-        m2.Begin();
+        
 
         //// THIS IS BRUTALLY SLOW AND TAKING ALL THE TIME
         ///THOUGHTS: Loop through once and mereley check against distance from player
@@ -195,145 +224,75 @@ public class ChunkManager {
 
 
 
-        // oldRemoveOld(job.orderedCoords);
-
-
-        /*
-
-        List<KeyValuePair<int3, Chunk>> chunksToRemove = new List<KeyValuePair<int3, Chunk>>();
-
-        int j = 0;
-        int k = 0;
-        foreach ( KeyValuePair<int3, Chunk> kvp in tempChunks)
-        {
-
-            // todo this needs to be fixed becausae it seems to wipe out all the keys
-            
-            Boolean found = false;
-
-            for (int i = 0; i < job.orderedCoords.Length; i++)
-            {
-                if (job.orderedCoords[i].Equals( kvp.Key))
-                {
-
-                    k++;
-                    found = true;
-                    break;
-                };
-            }
-
-            if (!found)
-            {
-                chunksToRemove.Add(kvp);
-            }
-
-        }
-
-
-
-        m2.End();
-        m3.Begin();
-        Debug.Log($"Chunks to remove {chunksToRemove.Count}");
-        Debug.Log($"Chunks to keep {k}");
-
-        if (lastChunksToKeep == chunksToRemove.Count)
-        {
-            Debug.Log($"removeall");
-
-        }
-
-
-
-        lastChunksToKeep = k;
-
-        m3.End();
-        m4.Begin();
-
-        foreach (KeyValuePair<int3, Chunk> kvp in chunksToRemove)
-        {
-
-            //kvp.Value.chunkObject.transform.position = new float3(10000, 0, 0);
-            //kvp.Value.meshFilter.mesh.Clear();
-
-            disposeChunk(kvp.Value);
-            tempChunks.Remove(kvp.Key);
-        }
-
-        */
-
         nearChunks.Dispose();
 
-        m4.End();
+       
     }
 
 
-    protected void oldRemoveOld(NativeList<int3> nearChunkCoords)
-    {
-        List<KeyValuePair<int3, Chunk>> chunksToRemove = new List<KeyValuePair<int3, Chunk>>();
+    //protected void oldRemoveOld(NativeList<int3> nearChunkCoords)
+    //{
+    //    List<KeyValuePair<int3, Chunk>> chunksToRemove = new List<KeyValuePair<int3, Chunk>>();
 
-        int j = 0;
-        int k = 0;
-        foreach (KeyValuePair<int3, Chunk> kvp in tempChunks)
-        {
+    //    int j = 0;
+    //    int k = 0;
+    //    foreach (KeyValuePair<int3, Chunk> kvp in tempChunks)
+    //    {
 
-            // todo this needs to be fixed becausae it seems to wipe out all the keys
+    //        // todo this needs to be fixed becausae it seems to wipe out all the keys
 
-            Boolean found = false;
+    //        Boolean found = false;
 
-            for (int i = 0; i < nearChunkCoords.Length; i++)
-            {
-                if (nearChunkCoords[i].Equals(kvp.Key))
-                {
+    //        for (int i = 0; i < nearChunkCoords.Length; i++)
+    //        {
+    //            if (nearChunkCoords[i].Equals(kvp.Key))
+    //            {
 
-                    k++;
-                    found = true;
-                    break;
-                };
-            }
+    //                k++;
+    //                found = true;
+    //                break;
+    //            };
+    //        }
 
-            if (!found)
-            {
-                chunksToRemove.Add(kvp);
-            }
+    //        if (!found)
+    //        {
+    //            chunksToRemove.Add(kvp);
+    //        }
 
-        }
-
-
-
-        m2.End();
-        m3.Begin();
-        Debug.Log($"Chunks to remove {chunksToRemove.Count}");
-        Debug.Log($"Chunks to keep {k}");
-
-        if (lastChunksToKeep == chunksToRemove.Count)
-        {
-            Debug.Log($"removeall");
-
-        }
+    //    }
 
 
 
-        lastChunksToKeep = k;
+    //    m2.End();
+    //    m3.Begin();
+    //    Debug.Log($"Chunks to remove {chunksToRemove.Count}");
+    //    Debug.Log($"Chunks to keep {k}");
 
-        m3.End();
-        m4.Begin();
+    //    if (lastChunksToKeep == chunksToRemove.Count)
+    //    {
+    //        Debug.Log($"removeall");
 
-        foreach (KeyValuePair<int3, Chunk> kvp in chunksToRemove)
-        {
-
-            //kvp.Value.chunkObject.transform.position = new float3(10000, 0, 0);
-            //kvp.Value.meshFilter.mesh.Clear();
-
-            disposeChunk(kvp.Value);
-            tempChunks.Remove(kvp.Key);
-        }
-
-
-    }
+    //    }
 
 
 
+    //    lastChunksToKeep = k;
 
+    //    m3.End();
+    //    m4.Begin();
+
+    //    foreach (KeyValuePair<int3, Chunk> kvp in chunksToRemove)
+    //    {
+
+    //        //kvp.Value.chunkObject.transform.position = new float3(10000, 0, 0);
+    //        //kvp.Value.meshFilter.mesh.Clear();
+
+    //        disposeChunk(kvp.Value);
+    //        tempChunks.Remove(kvp.Key);
+    //    }
+
+
+    //}
 
 
     protected List<Chunk> FilterChunksFurtherThan(int maxDist, int3 origin, List<Chunk> chunks)
@@ -370,17 +329,14 @@ public class ChunkManager {
 
 
 
-
-
-
     private void disposeChunk(Chunk chunk)
     {
 
         myWorld.DestroyObject(chunk.chunkObject);
 
 
-
     }
+
 
     void generateMeshForChunk(int3 chunkCoord, NativeArray<ChunkBlockData> blockData, MeshFilter meshFilter, Transform transform)
     {
@@ -453,7 +409,225 @@ public class ChunkManager {
         transform.position = new Vector3(Chunk.chunkWidth * chunkCoord.x, 0, Chunk.chunkWidth * chunkCoord.z);
     }
 
+
+
+    unsafe void generateMeshesForChunks(int3 chunkSize, int3 chunkCoord, NativeArray<ChunkBlockData> blockData, MeshFilter meshFilter, Transform transform)
+    {
+
+        ProfilerMarker marker = new ProfilerMarker("GenerateMeshes");
+        ProfilerMarker m1 = new ProfilerMarker("g1");
+        ProfilerMarker m2 = new ProfilerMarker("g2"); 
+        ProfilerMarker m3 = new ProfilerMarker("g3");
+
+        marker.Begin();
+
+        
+
+        /// Each chunk input
+        /// - Chunk Coordinate
+        /// - BlockData
+        /// - Chunk size
+        /// Each chunk output
+        /// - Vertex List
+        /// - Triangle List
+
+
+        /// For a batch
+        /// Input
+        /// - List of Chunk Coordinates
+        /// - List of Pointers to BlockData
+        /// - Chunk Size
+        /// Each Chunk Output
+        /// - List of pointers to Vertex List
+        /// - List of pointers to Triangle List
+        /// - List of Counts of Vertex List
+        /// - List of Counts of Triangle List
+        /// 
+
+
+
+        // TEMPORARY: Convert the single data into a multi data form
+
+        // Inputs
+        NativeArray<ulong> _blockDataPtrs = new NativeArray<ulong>(1, Allocator.TempJob);
+        _blockDataPtrs[0] = (ulong)blockData.GetUnsafePtr();
+
+        NativeArray<int> _blockDataCounts = new NativeArray<int>(1, Allocator.TempJob);
+        _blockDataCounts[0] = blockData.Length;
+
+        NativeArray<int3> _chunkSize = new NativeArray<int3>(1, Allocator.TempJob);
+        _chunkSize[0] = chunkSize;
+
+
+
+        // Outputs
+
+
+        // Create Storage Space for the results
+
+
+        m1.Begin();
+
+        //NativeArray<ChunkMeshVertexData> _verts = new NativeArray<ChunkMeshVertexData>(chunkSize.x * chunkSize.y * chunkSize.z * 24, Allocator.TempJob);
+        //NativeArray<int> _tris = new NativeArray<int>(chunkSize.x * chunkSize.y * chunkSize.z * 36, Allocator.TempJob);
+
+        m1.End();
+
+
+        NativeArray<ulong> _vertsPtrs = new NativeArray<ulong>(1, Allocator.TempJob);
+        NativeArray<int> _vertsCount = new NativeArray<int>(1, Allocator.TempJob);
+        NativeArray<ulong> _trisPtrs = new NativeArray<ulong>(1, Allocator.TempJob);
+        NativeArray<int> _trisCount = new NativeArray<int>(1, Allocator.TempJob);
+
+
+
+
+        _vertsPtrs[0] = (ulong)_verts.GetUnsafePtr();
+        _trisPtrs[0] = (ulong)_tris.GetUnsafePtr();
+
+
+      
+
+
+        m2.Begin();
+
+        // Operate
+        generateMeshesForChunks(ref _blockDataPtrs, ref _blockDataCounts, ref _chunkSize,
+            ref _vertsPtrs, ref _vertsCount, ref _trisPtrs, ref _trisCount);
+
+        m2.End();
+
+        
+
+
+        // update the mesh
+
+        // Convert the output Ptrs to NativeArrays
+
+        //NativeArray<ChunkBlockData> _verts = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<ChunkBlockData>((void*)_vertsPtrs[0], _vertsCount[0], Allocator.None);
+        //AtomicSafetyHandle vertsHandle = new AtomicSafetyHandle();
+        //NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref _verts, vertsHandle);
+
+        //NativeArray<int> _tris = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>((void*)_trisPtrs[0], _trisCount[0], Allocator.None);
+        //AtomicSafetyHandle trisHandle = new AtomicSafetyHandle();
+        //NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref _tris, trisHandle);
+
+
+        int index = 0;
+
+
+        Mesh mesh = new Mesh();
+        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+
+        var layout = new[]
+        {
+            new UnityEngine.Rendering.VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
+            new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
+            new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2)
+        };
+
+
+        
+
+        mesh.SetVertexBufferParams(_vertsCount[index], layout);
+        mesh.SetVertexBufferData(_verts, 0, 0, _vertsCount[index]);
+
+        m3.Begin();
+
+
+
+
+        int[] trilist = new int[_trisCount[index]];
+        NativeSlice<int> slice = _tris.Slice<int>(0,_trisCount[index]);
+        
+
+        //for (int t = 0; t < _trisCount[index]; t++)
+        //{
+        //    trilist[t] = _tris[t];
+        //}
+
+        slice.CopyTo(trilist);
+
+        mesh.triangles = trilist;
+
+       
+
+        mesh.RecalculateBounds();
+
+        
+
+
+        //meshVertices.Dispose();
+        //triVerts.Dispose();
+
+
+
+
+
+
+        meshFilter.mesh = mesh;
+        transform.position = new Vector3(Chunk.chunkWidth * chunkCoord.x, 0, Chunk.chunkWidth * chunkCoord.z);
+
+
+        /// Massive Leaks unless cleaned up
+        /// 
+        //AtomicSafetyHandle.Release(vertsHandle);
+        //AtomicSafetyHandle.Release(trisHandle);
+
+        _blockDataPtrs.Dispose();
+        _blockDataCounts.Dispose();
+        _chunkSize.Dispose();
+
+        _vertsPtrs.Dispose();
+        _vertsCount.Dispose();
+        _trisPtrs.Dispose();
+        _trisCount.Dispose();
+
+        //_verts.Dispose();
+        //_tris.Dispose();
+
+
+        m3.End();
+
+        marker.End();
+
+
+
+    }
+
+
+
+
+    protected void generateMeshesForChunks(
+        ref NativeArray<ulong> _blockDataPtrs,
+        ref NativeArray<int> _blockDataCounts,
+        ref NativeArray<int3> _chunkSize,
+        ref NativeArray<ulong> _vertsPtrs,
+        ref NativeArray<int> _vertCount,
+        ref NativeArray<ulong> _trisPtrs,
+        ref NativeArray<int> _trisCount
+        )
+    {
+
+
+        JobHandle handle = new MultiMeshCreateJob()
+        {
+            blockDataPtrs = _blockDataPtrs,
+            bockDataCounts = _blockDataCounts,
+            chunkSize = _chunkSize,
+            vertsPtrs = _vertsPtrs,
+            vertCount = _vertCount,
+            trisPtrs = _trisPtrs,
+            triIntCounts = _trisCount
+        }.Schedule(_blockDataPtrs.Length, 1);
+
+        handle.Complete();
+
+    }
+
 }
+
+
 
 
 

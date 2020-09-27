@@ -98,9 +98,6 @@ public class ChunkLoader
         */
 
 
-
-        marker1.End();
-
         return chunkData;
     }
 
@@ -134,7 +131,7 @@ public struct generateChunkJob : IJob
                     int index = (int)(x + y * chunkSize.x + z * chunkSize.x * chunkSize.y);
 
                     float terrainHeight = chunkSize.y - Math.Abs(x + z - 15) / 2;
-
+                    terrainHeight = 1;
                     //BlockData data = result[x + y * chunkWidth +  z * chunkHeight * chunkWidth];
 
                     ChunkBlockData chunkBlockData = new ChunkBlockData();

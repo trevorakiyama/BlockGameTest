@@ -34,7 +34,10 @@ public struct ChunkInitJob : IJob
             {
                 for (int z = 0; z < chunkWidth; z++)
                 {
-                    int m = chunkHeight - Math.Abs(x + z - 15) / 2;
+                    //int m = chunkHeight - Math.Abs(x + z - 15) / 2;
+
+                    int m = 2;
+
 
                     //BlockData data = result[x + y * chunkWidth +  z * chunkHeight * chunkWidth];
                     BlockData data = new BlockData();
