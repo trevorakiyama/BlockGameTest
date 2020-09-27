@@ -32,7 +32,7 @@ public struct MultiMeshCreateJob : IJobParallelFor
 
 
 
-
+    // TODO:  May want to clean some of this up, but it does run relatively fast.
     /// <summary>
     /// The Execute.
     /// </summary>
@@ -58,7 +58,7 @@ public struct MultiMeshCreateJob : IJobParallelFor
 
 
 
-        int3 size = chunkSize[0];
+        int3 size = (int3)chunkSize[0];
 
 
 
@@ -186,23 +186,10 @@ public struct MultiMeshCreateJob : IJobParallelFor
                     vertsout2.uv = new Vector2(1, 1);
                     vertsout3.uv = new Vector2(1, 0);
 
-                    //verts.Add(vertsout0);
-                    //verts.Add(vertsout1);
-                    //verts.Add(vertsout2);
-                    //verts.Add(vertsout3);
-
                     _verts[vertIndex] = vertsout0;
                     _verts[vertIndex + 1] = vertsout1;
                     _verts[vertIndex + 2] = vertsout2;
                     _verts[vertIndex + 3] = vertsout3;
-
-
-                    //tris.Add(_triangleVertices2[face * 6 + 0] + vertIndex);
-                    //tris.Add(_triangleVertices2[face * 6 + 1] + vertIndex);
-                    //tris.Add(_triangleVertices2[face * 6 + 2] + vertIndex);
-                    //tris.Add(_triangleVertices2[face * 6 + 3] + vertIndex);
-                    //tris.Add(_triangleVertices2[face * 6 + 4] + vertIndex);
-                    //tris.Add(_triangleVertices2[face * 6 + 5] + vertIndex);
 
 
                     _tris[triIndex] = _triangleVertices2[face * 6 + 0] + vertIndex;
@@ -227,39 +214,11 @@ public struct MultiMeshCreateJob : IJobParallelFor
         vertCount[index] = vertIndex;
         triIntCounts[index] = triIndex;
 
-
-        //_verts.CopyFrom(verts);
-        //_tris.CopyFrom(tris);
-
-        // Copy the results from one collection to the other
-
-
-
-
-        
-
-
-        //vertsPtrs[index] = (ulong)verts.GetUnsafePtr();
-        //trisPtrs[index] = (ulong)verts.GetUnsafePtr();
-
-
         AtomicSafetyHandle.Release(blockDataAtomicHandle);
         AtomicSafetyHandle.Release(vertsAtomicHandle);
         AtomicSafetyHandle.Release(trisAtomicHandle);
 
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -319,28 +278,6 @@ public struct MultiMeshCreateJob : IJobParallelFor
             0, 1, 3, 3, 1, 2
     };
 
-
-
-
-    //   internal static int[,] _faceVertices = new int[,]
-    //{
-    //       { 2, 6, 7, 3},
-    //       { 4, 0, 1, 5},
-    //       { 5, 7, 6, 4},
-    //       { 0, 2, 3, 1},
-    //       { 1, 3, 7, 5},
-    //       { 4, 6, 2, 0}
-    //};
-
-    //   internal static int[,] _triangleVertices = new int[,]
-    //   {
-    //       { 0, 1, 3, 3, 1, 2 },
-    //       { 0, 1, 3, 3, 1, 2 },
-    //       { 0, 1, 3, 3, 1, 2 },
-    //       { 0, 1, 3, 3, 1, 2 },
-    //       { 0, 1, 3, 3, 1, 2 },
-    //       { 0, 1, 3, 3, 1, 2 }
-    //   };
 
     // TODO: make this come from the block rather than hard coding
     internal static int[] materialIndex = new int[]

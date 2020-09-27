@@ -7,7 +7,6 @@ using Unity.Jobs;
 using Unity.Entities;
 using Unity.Rendering;
 using UnityEngine.Rendering;
-using UnityEngine;
 using Unity.Profiling;
 using Unity.Collections.LowLevel.Unsafe;
 
@@ -19,28 +18,27 @@ public class ChunkManager {
 
     public World myWorld;
 
+    public static int3 chunkSize = new int3(16, 16, 16);
+
+    ChunkMeshes chunkMeshes;
+
+
     // TODO:  Maybe these should go onto a Unity Object so they can be safely cleaned up when the program closes
 
     NativeArray<BlockTypeData> blockTypeData;
     NativeHashMap<int3, ChunkData> chunkData;
-
 
     NativeArray<ChunkMeshVertexData> _verts;
     NativeArray<int> _tris;
 
 
 
-
+    // TODO: Perhaps this should be turned into a NativeMap or even Entities?
     internal Dictionary<int3, Chunk> tempChunks = new Dictionary<int3, Chunk>();
-
-    public int dummyValue;
 
 
     ProfilerMarker m1 = new ProfilerMarker("m1");
-    //ProfilerMarker m2 = new ProfilerMarker("m2");
     ProfilerMarker m3 = new ProfilerMarker("m3");
-    //ProfilerMarker m4 = new ProfilerMarker("m4");
-
 
     public ChunkManager(World myWorld)
     {
@@ -54,15 +52,15 @@ public class ChunkManager {
         chunkData = new NativeHashMap<int3, ChunkData>(1024, Allocator.Persistent);
 
 
-        int3 chunkSize = new int3(Chunk.chunkWidth, Chunk.chunkHeight, Chunk.chunkWidth);
+        int3 chunkSize = ChunkManager.chunkSize;
 
         _verts = new NativeArray<ChunkMeshVertexData>(chunkSize.x * chunkSize.y * chunkSize.z * 24, Allocator.Persistent);
         _tris = new NativeArray<int>(chunkSize.x * chunkSize.y * chunkSize.z * 36, Allocator.Persistent);
 
 
 
+        chunkMeshes = new ChunkMeshes(chunkSize);
 
-        dummyValue = 1;
     }
         
 
@@ -70,10 +68,10 @@ public class ChunkManager {
     {
         blockTypeData.Dispose();
         chunkData.Dispose();
+        chunkMeshes.Dispose();
+
         _verts.Dispose();
         _tris.Dispose();
-
-        
     }
     
 
@@ -95,12 +93,7 @@ public class ChunkManager {
     public Boolean getChunkBlockData(int3 chunkCoord, ref NativeArray<ChunkBlockData> singleChunkBlockData)
     {
 
-        ChunkLoader.LoadChunk(singleChunkBlockData, chunkCoord,
-                    new uint3(Chunk.chunkWidth, Chunk.chunkHeight, Chunk.chunkWidth));
-        // Terrible copy of copying the data from one type to another 
-
-
-        //singleChunkBlockData.CopyFrom(chunkData);
+        ChunkLoader.LoadChunk(singleChunkBlockData, chunkCoord, ChunkManager.chunkSize);
 
         return true;
     }
@@ -109,6 +102,8 @@ public class ChunkManager {
     int lastChunksToKeep = 0;
 
 
+
+    // TODO:  This is doing too much.  Initializing AND Generating the meshes
     internal void ProcessChunksMeshes(int3 chunkPos)
     {
 
@@ -118,11 +113,9 @@ public class ChunkManager {
         ProfilerMarker p4 = new ProfilerMarker("p4");
 
 
+        int3 chunkSize = ChunkManager.chunkSize;
 
-
-        int3 chunkSize = new int3(Chunk.chunkWidth, Chunk.chunkHeight, Chunk.chunkHeight);
-
-        int maxDist = 64;
+        int maxDist = 24;
 
         // Make the Circle based on the player position, not just the chunk
 
@@ -143,8 +136,6 @@ public class ChunkManager {
         long timestamp = System.Diagnostics.Stopwatch.GetTimestamp();
 
 
-        Debug.Log($"nearcount = {nearChunks.Length}");
-
         p2.Begin();
 
         for (int i = 0; i < job.orderedCoords.Length; i++)
@@ -163,26 +154,22 @@ public class ChunkManager {
 
 
                 // TODO:  need a better way to deal with this because it get's disposed automatically
-               
-                
 
-
-                if (System.Diagnostics.Stopwatch.GetTimestamp() - timestamp < 50000l)
+                if (System.Diagnostics.Stopwatch.GetTimestamp() - timestamp < 50000L)
                 {
                     m1.Begin();
 
-                    NativeArray<ChunkBlockData> singleChunkBlockData = new NativeArray<ChunkBlockData>(Chunk.chunkWidth * Chunk.chunkHeight * Chunk.chunkWidth, Allocator.TempJob);
+                    NativeArray<ChunkBlockData> singleChunkBlockData = new NativeArray<ChunkBlockData>(chunkSize.x * chunkSize.y * chunkSize.z, Allocator.TempJob);
                     getChunkBlockData(coord, ref singleChunkBlockData);
-                    foundChunk = new Chunk(myWorld, vcoord, this);
+
+
+                    foundChunk = new Chunk(myWorld.textureMaterials, vcoord, this);
                     m1.End();
 
                     tempChunks.Add(coord, foundChunk);
                     m1.Begin();
 
-
-
-                    //generateMeshForChunk(coord, singleChunkBlockData, foundChunk.meshFilter, foundChunk.chunkObject.transform);
-                    generateMeshesForChunks(chunkSize, coord, singleChunkBlockData, foundChunk.meshFilter, foundChunk.chunkObject.transform);
+                    chunkMeshes.generateMeshesForChunks(chunkSize, coord, singleChunkBlockData, foundChunk.meshFilter, foundChunk.chunkObject.transform);
 
 
                     m1.End();
@@ -192,14 +179,7 @@ public class ChunkManager {
                     //break;
                 }
 
-                //generateMeshForChunk(coord, singleChunkBlockData, foundChunk.meshFilter, foundChunk.chunkObject.transform);
-
             }
-
-            //if (System.Diagnostics.Stopwatch.GetTimestamp() - timestamp > 200000l)
-            //{
-            //    break;
-            //}
         }
 
         p2.End();
@@ -219,7 +199,7 @@ public class ChunkManager {
         // Convert the Map of chunks to a list
 
         List<Chunk> allChunks = new List<Chunk>();
-        foreach(var kvp in tempChunks)
+        foreach (var kvp in tempChunks)
         {
             allChunks.Add(kvp.Value);
         }
@@ -242,73 +222,8 @@ public class ChunkManager {
 
         p3.End();
 
-       
+
     }
-
-
-    //protected void oldRemoveOld(NativeList<int3> nearChunkCoords)
-    //{
-    //    List<KeyValuePair<int3, Chunk>> chunksToRemove = new List<KeyValuePair<int3, Chunk>>();
-
-    //    int j = 0;
-    //    int k = 0;
-    //    foreach (KeyValuePair<int3, Chunk> kvp in tempChunks)
-    //    {
-
-    //        // todo this needs to be fixed becausae it seems to wipe out all the keys
-
-    //        Boolean found = false;
-
-    //        for (int i = 0; i < nearChunkCoords.Length; i++)
-    //        {
-    //            if (nearChunkCoords[i].Equals(kvp.Key))
-    //            {
-
-    //                k++;
-    //                found = true;
-    //                break;
-    //            };
-    //        }
-
-    //        if (!found)
-    //        {
-    //            chunksToRemove.Add(kvp);
-    //        }
-
-    //    }
-
-
-
-    //    m2.End();
-    //    m3.Begin();
-    //    Debug.Log($"Chunks to remove {chunksToRemove.Count}");
-    //    Debug.Log($"Chunks to keep {k}");
-
-    //    if (lastChunksToKeep == chunksToRemove.Count)
-    //    {
-    //        Debug.Log($"removeall");
-
-    //    }
-
-
-
-    //    lastChunksToKeep = k;
-
-    //    m3.End();
-    //    m4.Begin();
-
-    //    foreach (KeyValuePair<int3, Chunk> kvp in chunksToRemove)
-    //    {
-
-    //        //kvp.Value.chunkObject.transform.position = new float3(10000, 0, 0);
-    //        //kvp.Value.meshFilter.mesh.Clear();
-
-    //        disposeChunk(kvp.Value);
-    //        tempChunks.Remove(kvp.Key);
-    //    }
-
-
-    //}
 
 
     protected List<Chunk> FilterChunksFurtherThan(int maxDist, int3 origin, List<Chunk> chunks)
@@ -324,14 +239,14 @@ public class ChunkManager {
                 maxDist * maxDist;
 
             int3 pos = chunk.pos;
-            
+
             long distSquare =
                 (origin.x - chunk.pos.x) * (origin.x - chunk.pos.x)
                 + (origin.y - chunk.pos.y) * (origin.y - chunk.pos.y)
                 + (origin.z - chunk.pos.z) * (origin.z - chunk.pos.z);
 
 
-            
+
             if (maxDistSquare < distSquare)
             {
                 filteredChunks.Add(chunk);
@@ -354,312 +269,177 @@ public class ChunkManager {
     }
 
 
-    void generateMeshForChunk(int3 chunkCoord, NativeArray<ChunkBlockData> blockData, MeshFilter meshFilter, Transform transform)
-    {
 
 
-        NativeArray<int> returnCounts = new NativeArray<int>(2, Allocator.TempJob);
+    //unsafe void generateMeshesForChunks(int3 chunkSize, int3 chunkCoord, NativeArray<ChunkBlockData> blockData, MeshFilter meshFilter, Transform transform)
+    //{
 
-        NativeList<ChunkMeshVertexData> meshVertices = new NativeList<ChunkMeshVertexData>(8196, Allocator.TempJob);
-        NativeList<int> triVerts = new NativeList<int>(8196, Allocator.TempJob);
-
-        //NativeArray<ChunkBlockData> lblockData = new NativeArray<ChunkBlockData>(Chunk.chunkWidth * Chunk.chunkHeight * Chunk.chunkWidth, Allocator.TempJob);
-
-
-        m3.Begin();
-
-        // TODO: Investigate mesh generation compution in parallel
-        MeshCreateJob job = new MeshCreateJob();
-        job.blockData = blockData;
-        job.verts = meshVertices;
-        job.tris = triVerts;
-        job.sizex = Chunk.chunkWidth;
-        job.sizey = Chunk.chunkHeight;
-        job.sizez = Chunk.chunkWidth;
-        job.counts = returnCounts;
-        JobHandle handle = job.Schedule();
+    //    ProfilerMarker marker = new ProfilerMarker("GenerateMeshes");
+    //    ProfilerMarker m1 = new ProfilerMarker("g1");
+    //    ProfilerMarker m2 = new ProfilerMarker("g2"); 
+    //    ProfilerMarker m3 = new ProfilerMarker("g3");
+    //    ProfilerMarker m31 = new ProfilerMarker("g31");
+    //    ProfilerMarker m4 = new ProfilerMarker("g4");
+    //    ProfilerMarker m5 = new ProfilerMarker("g5");
 
 
-        handle.Complete();
-
-        m3.End();
-
-
-        int vertCount = job.counts[0];
-        int triCount = job.counts[1];
-        returnCounts.Dispose();
-        blockData.Dispose();
-
-
-        Mesh mesh = new Mesh();
-        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-
-        var layout = new[]
-        {
-            new UnityEngine.Rendering.VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
-            new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
-            new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2)
-        };
-
-
-        mesh.SetVertexBufferParams(vertCount, layout);
-
-        mesh.SetVertexBufferData((NativeArray<ChunkMeshVertexData>)job.verts, 0, 0, vertCount);
-
-        int[] trilist = new int[triCount];
-        for (int t = 0; t < triCount; t++)
-        {
-            trilist[t] = job.tris[t];
-        }
-
-        mesh.triangles = trilist;
-
-        mesh.RecalculateBounds();
-
-
-        meshVertices.Dispose();
-        triVerts.Dispose();
-
-
-        meshFilter.mesh = mesh;
-        transform.position = new Vector3(Chunk.chunkWidth * chunkCoord.x, 0, Chunk.chunkWidth * chunkCoord.z);
-    }
+    //    marker.Begin();
 
 
 
-    unsafe void generateMeshesForChunks(int3 chunkSize, int3 chunkCoord, NativeArray<ChunkBlockData> blockData, MeshFilter meshFilter, Transform transform)
-    {
-
-        ProfilerMarker marker = new ProfilerMarker("GenerateMeshes");
-        ProfilerMarker m1 = new ProfilerMarker("g1");
-        ProfilerMarker m2 = new ProfilerMarker("g2"); 
-        ProfilerMarker m3 = new ProfilerMarker("g3");
-        ProfilerMarker m31 = new ProfilerMarker("g31");
-        ProfilerMarker m4 = new ProfilerMarker("g4");
-        ProfilerMarker m5 = new ProfilerMarker("g5");
+    //    /// Each chunk input
+    //    /// - Chunk Coordinate
+    //    /// - BlockData
+    //    /// - Chunk size
+    //    /// Each chunk output
+    //    /// - Vertex List
+    //    /// - Triangle List
 
 
-        marker.Begin();
-
-
-
-        /// Each chunk input
-        /// - Chunk Coordinate
-        /// - BlockData
-        /// - Chunk size
-        /// Each chunk output
-        /// - Vertex List
-        /// - Triangle List
-
-
-        /// For a batch
-        /// Input
-        /// - List of Chunk Coordinates
-        /// - List of Pointers to BlockData
-        /// - Chunk Size
-        /// Each Chunk Output
-        /// - List of pointers to Vertex List
-        /// - List of pointers to Triangle List
-        /// - List of Counts of Vertex List
-        /// - List of Counts of Triangle List
-        /// 
+    //    /// For a batch
+    //    /// Input
+    //    /// - List of Chunk Coordinates
+    //    /// - List of Pointers to BlockData
+    //    /// - Chunk Size
+    //    /// Each Chunk Output
+    //    /// - List of pointers to Vertex List
+    //    /// - List of pointers to Triangle List
+    //    /// - List of Counts of Vertex List
+    //    /// - List of Counts of Triangle List
+    //    /// 
 
 
 
-        // TEMPORARY: TODO Convert the single data into a multi data form
+    //    // TEMPORARY: TODO Convert the single data into a multi data form
 
 
-        m1.Begin();
+    //    m1.Begin();
 
-        // Inputs
-        NativeArray<ulong> _blockDataPtrs = new NativeArray<ulong>(1, Allocator.TempJob);
-        _blockDataPtrs[0] = (ulong)blockData.GetUnsafePtr();
+    //    // Inputs
+    //    NativeArray<ulong> _blockDataPtrs = new NativeArray<ulong>(1, Allocator.TempJob);
+    //    _blockDataPtrs[0] = (ulong)blockData.GetUnsafePtr();
 
-        NativeArray<int> _blockDataCounts = new NativeArray<int>(1, Allocator.TempJob);
-        _blockDataCounts[0] = blockData.Length;
+    //    NativeArray<int> _blockDataCounts = new NativeArray<int>(1, Allocator.TempJob);
+    //    _blockDataCounts[0] = blockData.Length;
 
-        NativeArray<int3> _chunkSize = new NativeArray<int3>(1, Allocator.TempJob);
-        _chunkSize[0] = chunkSize;
-
-
-
-        // Outputs
+    //    NativeArray<int3> _chunkSize = new NativeArray<int3>(1, Allocator.TempJob);
+    //    _chunkSize[0] = chunkSize;
 
 
-        // Create Storage Space for the results
+
+    //    // Outputs
+
+    //    NativeArray<ulong> _vertsPtrs = new NativeArray<ulong>(1, Allocator.TempJob);
+    //    NativeArray<int> _vertsCount = new NativeArray<int>(1, Allocator.TempJob);
+    //    NativeArray<ulong> _trisPtrs = new NativeArray<ulong>(1, Allocator.TempJob);
+    //    NativeArray<int> _trisCount = new NativeArray<int>(1, Allocator.TempJob);
+
+    //    m1.End();
 
 
+    //    _vertsPtrs[0] = (ulong)_verts.GetUnsafePtr();
+    //    _trisPtrs[0] = (ulong)_tris.GetUnsafePtr();
+
+    //    m2.Begin();
+
+    //    // Operate
+    //    generateMeshesForChunks(ref _blockDataPtrs, ref _blockDataCounts, ref _chunkSize,
+    //        ref _vertsPtrs, ref _vertsCount, ref _trisPtrs, ref _trisCount);
+
+    //    m2.End();
+    //    m31.Begin();
+
+
+    //    // Index is a temp way to do one chunk
+    //    int index = 0;
+
+
+    //    Mesh mesh = new Mesh();
+    //    mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+
+    //    m31.End();
+
+    //    m3.Begin();
+
+
+    //    // TODO:  This could probably be put somewhere else
+    //    var layout = new[]
+    //    {
+    //        new UnityEngine.Rendering.VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
+    //        new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
+    //        new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2)
+    //    };
         
 
-        //NativeArray<ChunkMeshVertexData> _verts = new NativeArray<ChunkMeshVertexData>(chunkSize.x * chunkSize.y * chunkSize.z * 24, Allocator.TempJob);
-        //NativeArray<int> _tris = new NativeArray<int>(chunkSize.x * chunkSize.y * chunkSize.z * 36, Allocator.TempJob);
+    //    mesh.SetVertexBufferParams(_vertsCount[index], layout);
+    //    mesh.SetVertexBufferData(_verts, 0, 0, _vertsCount[index]);
 
+    //    m3.End();
+    //    m4.Begin();
+
+
+    //    NativeSlice<int> slice = _tris.Slice<int>(0,_trisCount[index]);
+    //    mesh.triangles = slice.ToArray();
+
+    //    m4.End();
+
+    //    Bounds bounds = new Bounds();
+    //    bounds.min = new Vector3(0, 0, 0);
+    //    bounds.max = new Vector3(chunkSize.x, chunkSize.y, chunkSize.z);
+
+    //    m5.Begin();
+
+    //    mesh.bounds = bounds;
+
+
+    //    meshFilter.mesh = mesh;
+    //    transform.position = new Vector3(chunkSize.x * chunkCoord.x, 0, chunkSize.z * chunkCoord.z);
+
+    //    _blockDataPtrs.Dispose();
+    //    _blockDataCounts.Dispose();
+    //    _chunkSize.Dispose();
+
+    //    _vertsPtrs.Dispose();
+    //    _vertsCount.Dispose();
+    //    _trisPtrs.Dispose();
+    //    _trisCount.Dispose();
+
+    //    m5.End();
        
 
-
-        NativeArray<ulong> _vertsPtrs = new NativeArray<ulong>(1, Allocator.TempJob);
-        NativeArray<int> _vertsCount = new NativeArray<int>(1, Allocator.TempJob);
-        NativeArray<ulong> _trisPtrs = new NativeArray<ulong>(1, Allocator.TempJob);
-        NativeArray<int> _trisCount = new NativeArray<int>(1, Allocator.TempJob);
-
-        m1.End();
-
-
-        _vertsPtrs[0] = (ulong)_verts.GetUnsafePtr();
-        _trisPtrs[0] = (ulong)_tris.GetUnsafePtr();
-
-
-      
-
-
-        m2.Begin();
-
-        // Operate
-        generateMeshesForChunks(ref _blockDataPtrs, ref _blockDataCounts, ref _chunkSize,
-            ref _vertsPtrs, ref _vertsCount, ref _trisPtrs, ref _trisCount);
-
-        m2.End();
-
-        m31.Begin();
-
-
-        // update the mesh
-
-        // Convert the output Ptrs to NativeArrays
-
-        //NativeArray<ChunkBlockData> _verts = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<ChunkBlockData>((void*)_vertsPtrs[0], _vertsCount[0], Allocator.None);
-        //AtomicSafetyHandle vertsHandle = new AtomicSafetyHandle();
-        //NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref _verts, vertsHandle);
-
-        //NativeArray<int> _tris = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>((void*)_trisPtrs[0], _trisCount[0], Allocator.None);
-        //AtomicSafetyHandle trisHandle = new AtomicSafetyHandle();
-        //NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref _tris, trisHandle);
-
-
-        int index = 0;
-
-
-        Mesh mesh = new Mesh();
-        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-
-        m31.End();
-
-        m3.Begin();
-        var layout = new[]
-        {
-            new UnityEngine.Rendering.VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
-            new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
-            new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2)
-        };
-
-
-        
-
-        mesh.SetVertexBufferParams(_vertsCount[index], layout);
-        mesh.SetVertexBufferData(_verts, 0, 0, _vertsCount[index]);
-
-        m3.End();
-        
-
-
-
-
-        //int[] trilist = new int[_trisCount[index]];
-        NativeSlice<int> slice = _tris.Slice<int>(0,_trisCount[index]);
-
-
-        m4.Begin();
-
-
-
-
-
-        mesh.triangles = slice.ToArray();
-
-
-
-
-        m4.End();
-
-
-
-        Bounds bounds = new Bounds();
-        bounds.min = new Vector3(0, 0, 0);
-        bounds.max = new Vector3(chunkSize.x, chunkSize.y, chunkSize.z);
-
-        m5.Begin();
-
-        mesh.bounds = bounds;
-        //mesh.RecalculateBounds();
-
-
-        
-
-
-        //meshVertices.Dispose();
-        //triVerts.Dispose();
-
-
-
-        meshFilter.mesh = mesh;
-        transform.position = new Vector3(Chunk.chunkWidth * chunkCoord.x, 0, Chunk.chunkWidth * chunkCoord.z);
-
-
-        /// Massive Leaks unless cleaned up
-        /// 
-        //AtomicSafetyHandle.Release(vertsHandle);
-        //AtomicSafetyHandle.Release(trisHandle);
-
-        _blockDataPtrs.Dispose();
-        _blockDataCounts.Dispose();
-        _chunkSize.Dispose();
-
-        _vertsPtrs.Dispose();
-        _vertsCount.Dispose();
-        _trisPtrs.Dispose();
-        _trisCount.Dispose();
-
-        //_verts.Dispose();
-        //_tris.Dispose();
-
-        m5.End();
-       
-
-        marker.End();
-
-
-
-    }
-
-
-
-
-    protected void generateMeshesForChunks(
-        ref NativeArray<ulong> _blockDataPtrs,
-        ref NativeArray<int> _blockDataCounts,
-        ref NativeArray<int3> _chunkSize,
-        ref NativeArray<ulong> _vertsPtrs,
-        ref NativeArray<int> _vertCount,
-        ref NativeArray<ulong> _trisPtrs,
-        ref NativeArray<int> _trisCount
-        )
-    {
-
-
-        JobHandle handle = new MultiMeshCreateJob()
-        {
-            blockDataPtrs = _blockDataPtrs,
-            bockDataCounts = _blockDataCounts,
-            chunkSize = _chunkSize,
-            vertsPtrs = _vertsPtrs,
-            vertCount = _vertCount,
-            trisPtrs = _trisPtrs,
-            triIntCounts = _trisCount
-        }.Schedule(_blockDataPtrs.Length, 1);
-
-        handle.Complete();
-
-    }
+    //    marker.End();
+
+    //}
+
+
+
+    //// TODO:  This should be moved out of here
+    //protected void generateMeshesForChunks(
+    //    ref NativeArray<ulong> _blockDataPtrs,
+    //    ref NativeArray<int> _blockDataCounts,
+    //    ref NativeArray<int3> _chunkSize,
+    //    ref NativeArray<ulong> _vertsPtrs,
+    //    ref NativeArray<int> _vertCount,
+    //    ref NativeArray<ulong> _trisPtrs,
+    //    ref NativeArray<int> _trisCount
+    //    )
+    //{
+
+
+    //    JobHandle handle = new MultiMeshCreateJob()
+    //    {
+    //        blockDataPtrs = _blockDataPtrs,
+    //        bockDataCounts = _blockDataCounts,
+    //        chunkSize = _chunkSize,
+    //        vertsPtrs = _vertsPtrs,
+    //        vertCount = _vertCount,
+    //        trisPtrs = _trisPtrs,
+    //        triIntCounts = _trisCount
+    //    }.Schedule(_blockDataPtrs.Length, 1);
+
+    //    handle.Complete();
+
+    //}
 
 }
 
@@ -700,10 +480,3 @@ public struct BlockTypeData
 
 }
 
-
-public struct testComponent : Unity.Entities.ISystemStateComponentData
-{
-
-
-
-}

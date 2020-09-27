@@ -11,23 +11,27 @@ using Unity.Mathematics;
 /// </summary>
 public class World : MonoBehaviour
 {
-    public static readonly int chunksWide = 1;
 
-    public static readonly int chunksHeight = 1;
-
-    public static readonly int chunksLong = 1;
-
+    // TODO: Consider making this a NativeHashMap instead (Should Chunk contain somethign more?
     internal Dictionary<Vector3Int, Chunk> chunksd = new Dictionary<Vector3Int, Chunk>();
 
+    // TODO: Consider moving this to a Texture Manager
     public Material textureMaterials;
 
+    // TODO: Is this even needed?
     private static World instance;
 
-    internal Vector3 playerPosition;
+
+    // TODO: Perhaps Player should be an entity?
+    internal float3 playerPosition;
 
 
     public ChunkManager chunkManager;
 
+
+
+    public static int renderDistance = 32;
+    public static int retentionDistance = 48;
 
 
     // Start is called before the first frame update
@@ -38,12 +42,12 @@ public class World : MonoBehaviour
     {
 
         instance = this;
-
         chunkManager = new ChunkManager(this);
     }
 
-    internal ProfilerMarker marker1 = new ProfilerMarker("Update 1");
 
+
+    internal ProfilerMarker marker1 = new ProfilerMarker("Update 1");
     internal ProfilerMarker marker2 = new ProfilerMarker("Update 2");
 
     // Update is called once per frame
@@ -53,40 +57,78 @@ public class World : MonoBehaviour
     internal void Update()
     {
 
-        
-
-        // TODO:  Make a real call through
-        chunkManager.checkUpdates();
+        // Each frame of the Update
 
 
-
-
+        // Temporary for now as Camera will later follow the player not vice versa
         GameObject player = GameObject.Find("Camera2");
-
         playerPosition = player.transform.position;
 
-        Vector3Int chunkCoord = getChunkCoord(playerPosition);
+        int3 playerChunkCoord = getChunkCoord(playerPosition);
+
+
+        // Kick off Loading and Initializing Any new Chunks that need to be loaded
+
+        // InitializeChunks  (Base Position, radius to check)
+
+
+
+
+
+        // Update Player, and gameworld state and entity AI on active chunks
+
+
+
+        // Update entities states
+
+
+
+
+        // Generate Meshes
+        // GenerateMeshes for outstanding initialized chunks 
+        // Generate Meshes (Base Position, radius to check)
+
+
+
+        // Save and Unload Chunks out of retention range
+        // Unload Meshes (Base Position, Radius to check);
+
+
+
+       
+
+       
 
         marker1.Begin();
 
-        chunkManager.ProcessChunksMeshes(new int3(chunkCoord.x, chunkCoord.y, chunkCoord.z));
+        chunkManager.ProcessChunksMeshes(new int3(playerChunkCoord.x, playerChunkCoord.y, playerChunkCoord.z));
+
+        
+
 
         marker1.End();
     }
 
+
+
+
+
+
+    // TODO: This needs to move somewhere else
     /// <summary>
     /// The getChunkCoord.
     /// </summary>
     /// <param name="pos">The pos<see cref="Vector3"/>.</param>
     /// <returns>The <see cref="Vector3Int"/>.</returns>
-    private Vector3Int getChunkCoord(Vector3 pos)
+    private int3 getChunkCoord(float3 pos)
     {
 
+        int3 chunkSize = ChunkManager.chunkSize;
 
         Vector3Int posInt = Vector3Int.FloorToInt(pos);
         if (posInt.x < 0)
         {
-            posInt.x -= Chunk.chunkWidth;
+            posInt.x -= chunkSize.x;
         }
 
         //if (posInt.y < 0)
@@ -101,11 +143,11 @@ public class World : MonoBehaviour
 
         if (posInt.z < 0)
         {
-            posInt.z -= Chunk.chunkWidth;
+            posInt.z -= chunkSize.y;
         }
 
 
-        Vector3Int chunkCoord = new Vector3Int(posInt.x / Chunk.chunkWidth, posInt.y / Chunk.chunkHeight, posInt.z / Chunk.chunkWidth);
+        int3 chunkCoord = new int3(posInt.x / chunkSize.x, posInt.y / chunkSize.y, posInt.z / chunkSize.z);
 
         return chunkCoord;
     }

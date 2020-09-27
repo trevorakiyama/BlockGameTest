@@ -29,7 +29,7 @@ public class Blocks
     public void addBlock(int blockIndex)
     {
 
-        Block block = new Block(null, new Vector3Int(0, 0, 0), new Vector3Int(0, 0, 0), true, true);
+        Block block = new Block(new Vector3Int(0, 0, 0), new Vector3Int(0, 0, 0), true, true);
 
         if (blockIndex == 0)
         {

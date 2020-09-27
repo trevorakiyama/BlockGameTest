@@ -10,7 +10,7 @@ using Unity.Profiling;
 public class ChunkLoader
 {
 
-    public static void LoadChunk(NativeArray<ChunkBlockData> chunkData, int3 chunkCoord, uint3 chunkSize)
+    public static void LoadChunk(NativeArray<ChunkBlockData> chunkData, int3 chunkCoord, int3 chunkSize)
     {
 
         // Has the chunk been saved to disk?
@@ -23,7 +23,21 @@ public class ChunkLoader
     }
 
 
-    private static void GenerateChunk(NativeArray<ChunkBlockData> chunkData, int3 chunkCoord, uint3 chunkSize)
+    public void intializeChunks(int3 center, int radius)
+    {
+        // Check for any chunks that aren't initialized in range and initialize
+
+
+
+
+
+
+
+    }
+
+
+
+    private static void GenerateChunk(NativeArray<ChunkBlockData> chunkData, int3 chunkCoord, int3 chunkSize)
     {
         ProfilerMarker marker1 = new ProfilerMarker("ChunkLoader.loader");
 
@@ -32,7 +46,7 @@ public class ChunkLoader
 
         
         //NativeList<ChunkBlockData> _blockDataOut = new NativeList<ChunkBlockData>((int) (chunkSize.x * chunkSize.y * chunkSize.z), Allocator.TempJob);
-        NativeArray<uint3> _chunkSizeInput = new NativeArray<uint3>(1, Allocator.TempJob);
+        NativeArray<int3> _chunkSizeInput = new NativeArray<int3>(1, Allocator.TempJob);
 
         _chunkSizeInput[0] = chunkSize;
 
@@ -49,56 +63,10 @@ public class ChunkLoader
 
         handle.Complete();
 
-        //ChunkBlockData[] chunkData = _blockDataOut.ToArray();
-
         //_blockDataOut.Dispose();
         _chunkSizeInput.Dispose();
         marker1.End();
         
-
-
-        /*
-        ChunkBlockData[] chunkData = new ChunkBlockData[chunkSize.x * chunkSize.y * chunkSize.z];
-
-        for (int x = 0; x < chunkSize.x; x++)
-        {
-            for (int y = 0; y < chunkSize.y ; y++)
-            {
-                for (int z = 0; z < chunkSize.z; z++)
-                {
-                    int index = (int) (x + y * chunkSize.x + z * chunkSize.x * chunkSize.y);
-
-                    float terrainHeight = chunkSize.y - Math.Abs(x + z - 15) / 2;
-
-                    //BlockData data = result[x + y * chunkWidth +  z * chunkHeight * chunkWidth];
-                    
-
-                    if (index >= chunkData.Length)
-                    {
-                        UnityEngine.Debug.Log("OUTOFRANGE");
-                    }
-
-
-                    if (y < terrainHeight)
-                    {
-                        chunkData[index].blockTypeId = 0;
-                        chunkData[index].isSolid = true;
-                        chunkData[index].isVisible = true;
-                    }
-                    else
-                    {
-                        chunkData[index].blockTypeId = 0;
-                        chunkData[index].isSolid = false;
-                        chunkData[index].isVisible = false;
-                    }
-                }
-            }
-        }
-
-        */
-
-
-        //return chunkData;
     }
 
 
@@ -110,11 +78,11 @@ public struct generateChunkJob : IJob
 {
 
     public NativeArray<ChunkBlockData> blockDataOut;
-    public NativeArray<uint3> chunkSizeInput;
+    public NativeArray<int3> chunkSizeInput;
 
     public void Execute()
     {
-        uint3 chunkSize = chunkSizeInput[0];
+        int3 chunkSize = chunkSizeInput[0];
 
 
         //ChunkBlockData[] chunkData = new ChunkBlockData[chunkSize.x * chunkSize.y * chunkSize.z];

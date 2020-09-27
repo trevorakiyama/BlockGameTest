@@ -36,15 +36,10 @@ public class Block
     public Boolean isVisible;
     public Vector3Int myPosWorld;
     public Vector3Int myPosChunk;
-    public Chunk myChunk;
-    //public int[] faceTextureIndices = new int[6];
-
-
    
 
-    public Block(Chunk myChunk, Vector3Int myPosWorld, Vector3Int myPosChunk, Boolean isSolid, Boolean isVisible)
+    public Block(Vector3Int myPosWorld, Vector3Int myPosChunk, Boolean isSolid, Boolean isVisible)
     {
-        this.myChunk = myChunk;
         this.isSolid = isSolid;
         this.isVisible = isVisible;
         this.myPosWorld = myPosWorld;
