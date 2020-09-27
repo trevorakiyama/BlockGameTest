@@ -10,7 +10,7 @@ using Unity.Profiling;
 public class ChunkLoader
 {
 
-    public static ChunkBlockData[] LoadChunk(int3 chunkCoord, uint3 chunkSize)
+    public static void LoadChunk(NativeArray<ChunkBlockData> chunkData, int3 chunkCoord, uint3 chunkSize)
     {
 
         // Has the chunk been saved to disk?
@@ -19,11 +19,11 @@ public class ChunkLoader
 
         // for not always generate it
 
-        return GenerateChunk(chunkCoord, chunkSize);
+        GenerateChunk(chunkData, chunkCoord, chunkSize);
     }
 
 
-    private static ChunkBlockData[] GenerateChunk(int3 chunkCoord, uint3 chunkSize)
+    private static void GenerateChunk(NativeArray<ChunkBlockData> chunkData, int3 chunkCoord, uint3 chunkSize)
     {
         ProfilerMarker marker1 = new ProfilerMarker("ChunkLoader.loader");
 
@@ -31,7 +31,7 @@ public class ChunkLoader
         marker1.Begin();
 
         
-        NativeList<ChunkBlockData> _blockDataOut = new NativeList<ChunkBlockData>((int) (chunkSize.x * chunkSize.y * chunkSize.z), Allocator.TempJob);
+        //NativeList<ChunkBlockData> _blockDataOut = new NativeList<ChunkBlockData>((int) (chunkSize.x * chunkSize.y * chunkSize.z), Allocator.TempJob);
         NativeArray<uint3> _chunkSizeInput = new NativeArray<uint3>(1, Allocator.TempJob);
 
         _chunkSizeInput[0] = chunkSize;
@@ -42,16 +42,16 @@ public class ChunkLoader
         JobHandle handle = new generateChunkJob()
         {
 
-            blockDataOut = _blockDataOut,
+            blockDataOut = chunkData,
             chunkSizeInput = _chunkSizeInput
         }.Schedule();
 
 
         handle.Complete();
 
-        ChunkBlockData[] chunkData = _blockDataOut.ToArray();
+        //ChunkBlockData[] chunkData = _blockDataOut.ToArray();
 
-        _blockDataOut.Dispose();
+        //_blockDataOut.Dispose();
         _chunkSizeInput.Dispose();
         marker1.End();
         
@@ -98,7 +98,7 @@ public class ChunkLoader
         */
 
 
-        return chunkData;
+        //return chunkData;
     }
 
 
@@ -109,7 +109,7 @@ public class ChunkLoader
 public struct generateChunkJob : IJob
 {
 
-    public NativeList<ChunkBlockData> blockDataOut;
+    public NativeArray<ChunkBlockData> blockDataOut;
     public NativeArray<uint3> chunkSizeInput;
 
     public void Execute()
@@ -120,7 +120,7 @@ public struct generateChunkJob : IJob
         //ChunkBlockData[] chunkData = new ChunkBlockData[chunkSize.x * chunkSize.y * chunkSize.z];
 
 
-
+        int i = 0;
 
         for (int x = 0; x < chunkSize.x; x++)
         {
@@ -156,7 +156,7 @@ public struct generateChunkJob : IJob
                         chunkBlockData.isVisible = false;
                     }
 
-                    blockDataOut.Add(chunkBlockData);
+                    blockDataOut[i++] = chunkBlockData;
                 }
             }
         }

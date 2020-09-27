@@ -95,12 +95,12 @@ public class ChunkManager {
     public Boolean getChunkBlockData(int3 chunkCoord, ref NativeArray<ChunkBlockData> singleChunkBlockData)
     {
 
-        ChunkBlockData[] chunkData = ChunkLoader.LoadChunk(chunkCoord,
+        ChunkLoader.LoadChunk(singleChunkBlockData, chunkCoord,
                     new uint3(Chunk.chunkWidth, Chunk.chunkHeight, Chunk.chunkWidth));
         // Terrible copy of copying the data from one type to another 
 
 
-        singleChunkBlockData.CopyFrom(chunkData);
+        //singleChunkBlockData.CopyFrom(chunkData);
 
         return true;
     }
@@ -111,6 +111,13 @@ public class ChunkManager {
 
     internal void ProcessChunksMeshes(int3 chunkPos)
     {
+
+        ProfilerMarker p1 = new ProfilerMarker("p1");
+        ProfilerMarker p2 = new ProfilerMarker("p2");
+        ProfilerMarker p3 = new ProfilerMarker("p3");
+        ProfilerMarker p4 = new ProfilerMarker("p4");
+
+
 
 
         int3 chunkSize = new int3(Chunk.chunkWidth, Chunk.chunkHeight, Chunk.chunkHeight);
@@ -138,6 +145,7 @@ public class ChunkManager {
 
         Debug.Log($"nearcount = {nearChunks.Length}");
 
+        p2.Begin();
 
         for (int i = 0; i < job.orderedCoords.Length; i++)
         {
@@ -159,11 +167,15 @@ public class ChunkManager {
                 
 
 
-                if (System.Diagnostics.Stopwatch.GetTimestamp() - timestamp < 200000l)
+                if (System.Diagnostics.Stopwatch.GetTimestamp() - timestamp < 50000l)
                 {
+                    m1.Begin();
+
                     NativeArray<ChunkBlockData> singleChunkBlockData = new NativeArray<ChunkBlockData>(Chunk.chunkWidth * Chunk.chunkHeight * Chunk.chunkWidth, Allocator.TempJob);
                     getChunkBlockData(coord, ref singleChunkBlockData);
                     foundChunk = new Chunk(myWorld, vcoord, this);
+                    m1.End();
+
                     tempChunks.Add(coord, foundChunk);
                     m1.Begin();
 
@@ -190,17 +202,19 @@ public class ChunkManager {
             //}
         }
 
+        p2.End();
+
 
         // dispose of all chunks that are not in th local range
         // Should probably sort these as well
 
-        
+
 
         //// THIS IS BRUTALLY SLOW AND TAKING ALL THE TIME
         ///THOUGHTS: Loop through once and mereley check against distance from player
         ///Also turn off the mesh generation unless needed
 
-
+        p3.Begin();
 
         // Convert the Map of chunks to a list
 
@@ -225,6 +239,8 @@ public class ChunkManager {
 
 
         nearChunks.Dispose();
+
+        p3.End();
 
        
     }
@@ -418,10 +434,14 @@ public class ChunkManager {
         ProfilerMarker m1 = new ProfilerMarker("g1");
         ProfilerMarker m2 = new ProfilerMarker("g2"); 
         ProfilerMarker m3 = new ProfilerMarker("g3");
+        ProfilerMarker m31 = new ProfilerMarker("g31");
+        ProfilerMarker m4 = new ProfilerMarker("g4");
+        ProfilerMarker m5 = new ProfilerMarker("g5");
+
 
         marker.Begin();
 
-        
+
 
         /// Each chunk input
         /// - Chunk Coordinate
@@ -446,7 +466,10 @@ public class ChunkManager {
 
 
 
-        // TEMPORARY: Convert the single data into a multi data form
+        // TEMPORARY: TODO Convert the single data into a multi data form
+
+
+        m1.Begin();
 
         // Inputs
         NativeArray<ulong> _blockDataPtrs = new NativeArray<ulong>(1, Allocator.TempJob);
@@ -466,12 +489,12 @@ public class ChunkManager {
         // Create Storage Space for the results
 
 
-        m1.Begin();
+        
 
         //NativeArray<ChunkMeshVertexData> _verts = new NativeArray<ChunkMeshVertexData>(chunkSize.x * chunkSize.y * chunkSize.z * 24, Allocator.TempJob);
         //NativeArray<int> _tris = new NativeArray<int>(chunkSize.x * chunkSize.y * chunkSize.z * 36, Allocator.TempJob);
 
-        m1.End();
+       
 
 
         NativeArray<ulong> _vertsPtrs = new NativeArray<ulong>(1, Allocator.TempJob);
@@ -479,7 +502,7 @@ public class ChunkManager {
         NativeArray<ulong> _trisPtrs = new NativeArray<ulong>(1, Allocator.TempJob);
         NativeArray<int> _trisCount = new NativeArray<int>(1, Allocator.TempJob);
 
-
+        m1.End();
 
 
         _vertsPtrs[0] = (ulong)_verts.GetUnsafePtr();
@@ -497,7 +520,7 @@ public class ChunkManager {
 
         m2.End();
 
-        
+        m31.Begin();
 
 
         // update the mesh
@@ -519,6 +542,9 @@ public class ChunkManager {
         Mesh mesh = new Mesh();
         mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
 
+        m31.End();
+
+        m3.Begin();
         var layout = new[]
         {
             new UnityEngine.Rendering.VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
@@ -532,36 +558,46 @@ public class ChunkManager {
         mesh.SetVertexBufferParams(_vertsCount[index], layout);
         mesh.SetVertexBufferData(_verts, 0, 0, _vertsCount[index]);
 
-        m3.Begin();
-
-
-
-
-        int[] trilist = new int[_trisCount[index]];
-        NativeSlice<int> slice = _tris.Slice<int>(0,_trisCount[index]);
+        m3.End();
         
 
-        //for (int t = 0; t < _trisCount[index]; t++)
-        //{
-        //    trilist[t] = _tris[t];
-        //}
 
-        slice.CopyTo(trilist);
 
-        mesh.triangles = trilist;
 
-       
+        //int[] trilist = new int[_trisCount[index]];
+        NativeSlice<int> slice = _tris.Slice<int>(0,_trisCount[index]);
 
-        mesh.RecalculateBounds();
+
+        m4.Begin();
+
+
+
+
+
+        mesh.triangles = slice.ToArray();
+
+
+
+
+        m4.End();
+
+
+
+        Bounds bounds = new Bounds();
+        bounds.min = new Vector3(0, 0, 0);
+        bounds.max = new Vector3(chunkSize.x, chunkSize.y, chunkSize.z);
+
+        m5.Begin();
+
+        mesh.bounds = bounds;
+        //mesh.RecalculateBounds();
+
 
         
 
 
         //meshVertices.Dispose();
         //triVerts.Dispose();
-
-
-
 
 
 
@@ -586,8 +622,8 @@ public class ChunkManager {
         //_verts.Dispose();
         //_tris.Dispose();
 
-
-        m3.End();
+        m5.End();
+       
 
         marker.End();
 
