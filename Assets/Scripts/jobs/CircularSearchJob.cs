@@ -11,26 +11,26 @@ using UnityEngine;
 public struct CircularSearchJob : IJob
 {
 
-    public NativeList<int3> orderedCoords;
+    public NativeList<int3> _orderedCoords;
 
 
-    public int3 origin;
-    public int maxDist;
+    public int3 _origin;
+    public int _maxDist;
 
 
     void IJob.Execute()
     {
 
-        int maxDist2 = maxDist * maxDist;
+        int maxDist2 = _maxDist * _maxDist;
 
-        for (int x = -maxDist; x < maxDist; x++)
+        for (int x = -_maxDist; x < _maxDist; x++)
         {
-            for (int z = -maxDist; z < maxDist; z++)
+            for (int z = -_maxDist; z < _maxDist; z++)
             {
 
                 if (x *x +  z * z <= maxDist2)
                 {
-                    orderedCoords.Add(new int3(x , 0, z));
+                    _orderedCoords.Add(new int3(x , 0, z));
 
                 }
 
@@ -40,19 +40,20 @@ public struct CircularSearchJob : IJob
 
         
         // TODO: Could chain the sorting and readjustment as another job but do that later if there's a problem
-        orderedCoords.Sort<int3, VecCompare>(new VecCompare());
+        _orderedCoords.Sort<int3, VecCompare>(new VecCompare());
 
 
-        for (int i = 0; i < orderedCoords.Length; i++)
+        for (int i = 0; i < _orderedCoords.Length; i++)
         {
-            int3 coord = orderedCoords[i] + origin;
-            orderedCoords[i] = coord;
+            int3 coord = _orderedCoords[i] + _origin;
+            _orderedCoords[i] = coord;
 
         }
 
     }
 }
 
+[BurstCompile]
 public readonly struct VecCompare : IComparer<int3>
 {
     public int Compare(int3 v1, int3 v2)

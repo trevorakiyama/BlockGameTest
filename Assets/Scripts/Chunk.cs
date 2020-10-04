@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JetBrains.Annotations;
+using System;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -30,5 +31,10 @@ public struct Chunk
 
         dataInitialized = false;
         recalculateMesh = true;
+
+
+
+
+
     }
 }

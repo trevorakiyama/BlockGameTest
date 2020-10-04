@@ -18,6 +18,8 @@ public struct MultiMeshCreateJob : IJobParallelFor
     // Inputs
     public NativeArray<ulong> blockDataPtrs;
     public NativeArray<int> bockDataCounts;
+
+    [NativeDisableParallelForRestriction]
     public NativeArray<int3> chunkSize;
 
 
@@ -28,7 +30,6 @@ public struct MultiMeshCreateJob : IJobParallelFor
     public NativeArray<int> vertCount;
     public NativeArray<ulong> trisPtrs;
     public NativeArray<int> triIntCounts;
-
 
 
 

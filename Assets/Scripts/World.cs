@@ -30,8 +30,8 @@ public class World : MonoBehaviour
 
 
 
-    public static int renderDistance = 32;
-    public static int retentionDistance = 48;
+    public static int renderDistance = 64;
+    public static int retentionDistance = 80;
 
 
     // Start is called before the first frame update
@@ -70,7 +70,7 @@ public class World : MonoBehaviour
         // Kick off Loading and Initializing Any new Chunks that need to be loaded
 
         // InitializeChunks  (Base Position, radius to check)
-
+        //chunkManager.initializeChunks(int3 baseChunk, int distance);
 
 
 
@@ -87,6 +87,7 @@ public class World : MonoBehaviour
         // Generate Meshes
         // GenerateMeshes for outstanding initialized chunks 
         // Generate Meshes (Base Position, radius to check)
+        //chunkManager.generateMeshes(int baseChunk, int3 renderDistance);
 
 
 
@@ -96,12 +97,16 @@ public class World : MonoBehaviour
 
 
        
+        
+
+
+
 
        
 
         marker1.Begin();
 
-        chunkManager.ProcessChunksMeshes(new int3(playerChunkCoord.x, playerChunkCoord.y, playerChunkCoord.z));
+        chunkManager.ProcessChunksMeshesNew(new int3(playerChunkCoord.x, playerChunkCoord.y, playerChunkCoord.z));
 
         
 

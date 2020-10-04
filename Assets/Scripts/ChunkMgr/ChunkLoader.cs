@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -10,27 +11,89 @@ using Unity.Profiling;
 public class ChunkLoader
 {
 
-    public static void LoadChunk(NativeArray<ChunkBlockData> chunkData, int3 chunkCoord, int3 chunkSize)
+    int3 chunkSize;
+    Dictionary<int3, NativeArray<ChunkBlockData>> allBlockData = new Dictionary<int3, NativeArray<ChunkBlockData>>();
+
+    NativeHashMap<int3, ulong> chunkBlocks;
+
+
+    public ChunkLoader(int3 chunkSize)
+    {
+        this.chunkSize = chunkSize;
+
+        //this.chunkBlocks = new NativeHashMap<int3, ulong>(4096, Allocator.Persistent);
+
+    }
+
+    public void Dispose()
+    {
+        foreach (var kvp in allBlockData)
+        {
+
+            kvp.Value.Dispose();
+        }
+    }
+
+
+
+    public bool GetChunkData(NativeArray<ChunkBlockData> chunkData, int3 chunkCoord, bool loadIfNotFound)
+    {
+        ProfilerMarker m = new ProfilerMarker("GetChunkData");
+        m.Begin();
+
+        NativeArray<ChunkBlockData> _chunkData;
+        bool found = allBlockData.TryGetValue(chunkCoord, out _chunkData);
+
+        if (found)
+        {
+            _chunkData.CopyTo(chunkData);
+        }
+        else if (loadIfNotFound)
+        {
+
+            LoadChunk(chunkData, chunkCoord);
+
+        } else
+        {
+            m.End();
+            return false;
+        }
+
+        m.End();
+        return true;
+    }
+
+
+
+    public void LoadChunk(NativeArray<ChunkBlockData> chunkData, int3 chunkCoord)
     {
 
         // Has the chunk been saved to disk?
         // if so then load it
         // if not then generate it
 
-        // for not always generate it
+        // for now always generate it
 
-        GenerateChunk(chunkData, chunkCoord, chunkSize);
+        NativeArray<ChunkBlockData> _chunkData;
+        bool found = allBlockData.TryGetValue(chunkCoord, out _chunkData);
+
+        if (found)
+        {
+            _chunkData.CopyTo(chunkData);
+        } else
+        {
+            GenerateChunk(chunkData, chunkCoord, chunkSize);
+
+            NativeArray<ChunkBlockData> newData = new NativeArray<ChunkBlockData>(chunkData.Length, Allocator.Persistent);
+            chunkData.CopyTo(newData);
+            allBlockData.Add(chunkCoord, newData);
+        }
     }
 
 
     public void intializeChunks(int3 center, int radius)
     {
         // Check for any chunks that aren't initialized in range and initialize
-
-
-
-
-
 
 
     }
@@ -111,7 +174,7 @@ public struct generateChunkJob : IJob
                     }
 
 
-                    if (y < terrainHeight)
+                    if (y < terrainHeight || (x ==0 && z==0))
                     {
                         chunkBlockData.blockTypeId = 0;
                         chunkBlockData.isSolid = true;
